@@ -1,0 +1,1043 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black"/>
+<meta name="apple-mobile-web-app-title" content="Protokoll"/>
+<meta name="theme-color" content="#0d0d0d"/>
+<title>Protokoll</title>
+<style>
+  :root{
+    --bg:#0d0d0d; --s1:#151515; --s2:#1c1c1c; --s3:#242424;
+    --bd:#2c2c2c; --bd2:#383838;
+    --t1:#e9e9e9; --t2:#8c8c8c; --t3:#5a5a5a;
+    --grn:#3fb950; --grn-bg:#0f2417;
+    --acc:#d0d0d0;
+    --warn:#d29922;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+    --r:8px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    background:var(--bg);color:var(--t1);font-family:var(--sans);
+    font-size:16px;line-height:1.4;-webkit-tap-highlight-color:transparent;
+    min-height:100vh;padding-bottom:env(safe-area-inset-bottom);
+  }
+  button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:none}
+  input,select,textarea{font-family:inherit;color:inherit;font-size:16px}
+  input:focus,select:focus,textarea:focus{outline:none}
+  .mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+  .num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+  input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+  input[type=number]{-moz-appearance:textfield}
+  ::-webkit-scrollbar{display:none}
+
+  .wrap{max-width:640px;margin:0 auto;padding:16px 14px 96px}
+  .topbar{position:sticky;top:0;z-index:20;background:var(--bg);border-bottom:1px solid var(--bd);
+    display:flex;align-items:center;gap:10px;padding:12px 14px;min-height:56px}
+  .topbar .ttl{font-family:var(--mono);font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--t2)}
+  .topbar .sp{flex:1}
+  .tbtn{min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;
+    color:var(--t2);font-size:14px;border-radius:var(--r);padding:0 12px;border:1px solid transparent}
+  .tbtn:active{background:var(--s2)}
+
+  .card{background:var(--s1);border:1px solid var(--bd);border-radius:var(--r);margin-bottom:12px}
+  .lbl{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--t3)}
+  .muted{color:var(--t2)}
+  .dim{color:var(--t3)}
+
+  .daybtn{width:100%;min-height:88px;background:var(--s1);border:1px solid var(--bd2);border-radius:var(--r);
+    display:flex;align-items:center;gap:16px;padding:18px 18px;margin-bottom:12px;text-align:left;transition:background .12s ease}
+  .daybtn:active{background:var(--s2)}
+  .daybtn .tag{font-family:var(--mono);font-size:34px;font-weight:600;width:52px;text-align:center;color:var(--t1)}
+  .daybtn .meta{flex:1;min-width:0}
+  .daybtn .meta .n{font-size:17px;font-weight:600}
+  .daybtn .meta .s{font-size:12px;color:var(--t2);margin-top:3px;font-family:var(--mono)}
+
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 18px;
+    border-radius:var(--r);background:var(--s2);border:1px solid var(--bd2);color:var(--t1);font-size:15px;font-weight:500;width:100%;transition:background .12s ease}
+  .btn:active{background:var(--s3)}
+  .btn.prim{background:#e9e9e9;color:#111;border-color:#e9e9e9;font-weight:600}
+  .btn.prim:active{background:#cfcfcf}
+  .btn.ghost{background:transparent}
+  .btn.sm{min-height:44px;font-size:14px;padding:0 14px;width:auto}
+
+  .field{display:block;margin-bottom:14px}
+  .field .k{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);margin-bottom:7px;display:block}
+  .input{width:100%;min-height:48px;background:var(--s2);border:1px solid var(--bd2);border-radius:var(--r);padding:0 14px;color:var(--t1)}
+
+  .exrow{border-bottom:1px solid var(--bd)}
+  .exrow:last-child{border-bottom:none}
+  .exhead{display:flex;align-items:center;gap:10px;padding:14px;min-height:60px;width:100%;text-align:left;background:none}
+  .exhead:active{background:var(--s2)}
+  .exhead .idx{font-family:var(--mono);font-size:12px;color:var(--t3);width:20px}
+  .exhead .nm{flex:1;min-width:0}
+  .exhead .nm .n{font-size:16px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .exhead .nm .t{font-family:var(--mono);font-size:11px;color:var(--t2);margin-top:2px}
+  .exhead .cnt{font-family:var(--mono);font-size:13px;color:var(--t2);min-width:34px;text-align:right}
+  .exhead.done .n{color:var(--t1)}
+  .chev{color:var(--t3);width:22px;text-align:center;font-size:13px}
+
+  .exbody{padding:0 14px 16px}
+  .refline{font-family:var(--mono);font-size:12px;color:var(--t3);padding:6px 0 12px;line-height:1.7;word-break:break-word}
+  .refline b{color:var(--t2);font-weight:500}
+
+  .savedset{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:14px;padding:9px 10px;background:var(--s2);border:1px solid var(--bd);border-radius:6px;margin-bottom:7px}
+  .savedset .sn{color:var(--t3);width:26px}
+  .savedset .vl{flex:1}
+  .savedset .dl{font-size:12px}
+  .savedset .del{min-width:40px;min-height:32px;color:var(--t3);text-align:right}
+  .grn{color:var(--grn)}
+
+  .stepper{display:flex;align-items:stretch;gap:0;border:1px solid var(--bd2);border-radius:var(--r);overflow:hidden;background:var(--s2)}
+  .stepper button{width:48px;min-height:52px;font-size:24px;font-family:var(--mono);color:var(--t1);background:var(--s3)}
+  .stepper button:active{background:var(--bd2)}
+  .stepper input{flex:1;min-width:0;text-align:center;background:none;border:none;font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:20px;font-weight:600}
+  .steplbl{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);margin-bottom:6px;display:block}
+  .inputgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+  .inputgrid.one{grid-template-columns:1fr}
+  .unit{font-size:13px;color:var(--t3);padding-right:12px;align-self:center}
+
+  .sidebar{display:flex;gap:8px;margin-bottom:12px}
+  .sidebtn{flex:1;min-height:44px;border:1px solid var(--bd2);border-radius:var(--r);background:var(--s2);font-family:var(--mono);font-size:14px;color:var(--t2)}
+  .sidebtn.on{background:var(--s3);color:var(--t1);border-color:var(--bd2)}
+
+  .rpe{display:flex;align-items:center;gap:14px;padding:12px 0 4px}
+  .rpe .k{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);width:44px}
+  .rpe input[type=range]{flex:1;-webkit-appearance:none;height:6px;border-radius:3px;background:var(--s3)}
+  .rpe input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;height:30px;border-radius:50%;background:var(--t1);border:2px solid var(--bg)}
+  .rpe .v{font-family:var(--mono);font-size:20px;font-weight:600;width:34px;text-align:right}
+
+  .hrow{display:flex;align-items:center;gap:12px;padding:15px 14px;border-bottom:1px solid var(--bd);width:100%;text-align:left;background:none}
+  .hrow:active{background:var(--s2)}
+  .hrow .tag{font-family:var(--mono);font-size:20px;font-weight:600;width:34px;text-align:center;color:var(--t2)}
+  .hrow .m{flex:1}
+  .hrow .m .d{font-family:var(--mono);font-size:15px}
+  .hrow .m .s{font-size:12px;color:var(--t2);margin-top:2px;font-family:var(--mono)}
+  .hrow .r{font-family:var(--mono);font-size:12px;color:var(--t3);text-align:right}
+
+  table.tbl{width:100%;border-collapse:collapse;font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:14px}
+  table.tbl th{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);font-weight:500;text-align:right;padding:8px 6px;border-bottom:1px solid var(--bd)}
+  table.tbl th:first-child{text-align:left}
+  table.tbl td{padding:10px 6px;border-bottom:1px solid var(--bd);text-align:right}
+  table.tbl td:first-child{text-align:left;color:var(--t2)}
+
+  .syncbadge{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:12px;color:var(--t2);padding:6px 10px;border:1px solid var(--bd);border-radius:20px;background:var(--s1)}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--grn)}
+  .dot.pending{background:var(--warn)}
+  .dot.off{background:var(--t3)}
+
+  .banner{background:var(--s2);border:1px solid var(--bd2);border-radius:var(--r);padding:14px;font-size:14px;color:var(--t2);margin-bottom:14px;line-height:1.6}
+  .banner code{font-family:var(--mono);color:var(--t1);font-size:13px}
+
+  .sheet{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.6);display:flex;align-items:flex-end}
+  .sheet .inner{background:var(--s1);border-top:1px solid var(--bd2);border-radius:14px 14px 0 0;width:100%;max-width:640px;margin:0 auto;max-height:80vh;overflow-y:auto;padding:8px 0 24px}
+  .sheet .pick{display:flex;align-items:center;gap:12px;padding:15px 18px;min-height:56px;width:100%;text-align:left;border-bottom:1px solid var(--bd)}
+  .sheet .pick:active{background:var(--s2)}
+  .sheet .ph{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);padding:16px 18px 8px}
+
+  .spacer{height:14px}
+  .center{text-align:center}
+  .err{color:var(--warn);font-size:14px;font-family:var(--mono);margin-top:10px;min-height:20px}
+  a{color:var(--t1)}
+
+  @media (prefers-reduced-motion: reduce){
+    *{transition:none !important;animation:none !important}
+  }
+</style>
+</head>
+<body>
+<div id="app"><div class="wrap" style="padding-top:80px;text-align:center;color:#5a5a5a;font-family:ui-monospace,monospace">Laden&hellip;</div></div>
+
+<script type="module">
+/* Supabase-Client wird erst bei Bedarf per dynamischem Import geladen
+   (siehe loadSupabase). So bleibt die App auch dann bedienbar, wenn das
+   CDN kurz nicht erreichbar ist, und zeigt notfalls eine Meldung statt
+   eines schwarzen Bildschirms. */
+
+/* =====================================================================
+   KONFIGURATION  --  hier die Werte aus dem eigenen Supabase-Projekt
+   eintragen (Project Settings -> API). Bis dahin zeigt die App einen
+   Hinweis. Der Anon-Key ist oeffentlich unkritisch, solange RLS aktiv ist.
+   ===================================================================== */
+const SUPABASE_URL      = "https://grwnfglkyhvwihcqddti.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_j42yrMBKCrhRXRMCzMYfIg_I7LtzlKo";
+
+const CONFIGURED = !(SUPABASE_URL.includes("DEIN-PROJEKT") || SUPABASE_ANON_KEY.includes("DEIN-ANON"));
+
+/* ----------------------------- Konstanten ----------------------------- */
+const DAYS = ["A","B","C"];
+const DAY_NAMES = { A:"Kraft A", B:"Kraft B", C:"Kraft C", X:"Sonstige" };
+const WEIGHT_STEP = 2.5;
+const DIST_STEP = 5;
+const TIME_STEP = 5;
+
+/* --------------------------- LocalStorage ----------------------------- */
+const LS = {
+  get(k, fb){ try{ const v = localStorage.getItem(k); return v==null ? fb : JSON.parse(v); }catch(e){ return fb; } },
+  set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} },
+};
+
+/* ------------------------------- State -------------------------------- */
+const state = {
+  screen: "boot",
+  user: null,
+  exercises: LS.get("tp_ex", []),
+  sessions: LS.get("tp_sessions", []),   // lokale Session-Objekte (mit _synced)
+  sets: LS.get("tp_sets", []),           // lokale Satz-Objekte (mit _synced)
+  cycleStart: LS.get("tp_cycle_start", null),
+  online: navigator.onLine,
+  syncing: false,
+  // aktive Einheit
+  active: null,      // Session-Objekt der laufenden Einheit
+  dayList: [],       // Uebungen der laufenden Einheit (geordnet)
+  ui: {},            // fluechtiger UI-Zustand je Uebung
+  histExercise: null,
+};
+
+let sb = null;
+let createClient = null;
+// Mehrere ESM-CDNs als Fallback: schlaegt eines fehl, wird das naechste versucht.
+const SB_CDNS = [
+  "https://esm.sh/@supabase/supabase-js@2",
+  "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm",
+  "https://cdn.skypack.dev/@supabase/supabase-js@2",
+];
+async function loadSupabase(){
+  let lastErr = null;
+  for (const url of SB_CDNS){
+    try{
+      const mod = await import(url);
+      if (mod && mod.createClient) return mod.createClient;
+    }catch(e){ lastErr = e; }
+  }
+  throw lastErr || new Error("Supabase-Bibliothek nicht ladbar");
+}
+
+/* ------------------------------ Helfer -------------------------------- */
+function uuid(){
+  if (crypto && crypto.randomUUID) return crypto.randomUUID();
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, c=>{
+    const r = Math.floor(Math.random()*16); const v = c==="x"? r : (r&0x3|0x8); return v.toString(16);
+  });
+}
+function todayISO(){ const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function persist(){
+  LS.set("tp_sessions", state.sessions);
+  LS.set("tp_sets", state.sets);
+  LS.set("tp_ex", state.exercises);
+  LS.set("tp_cycle_start", state.cycleStart);
+}
+function fmtNum(n){
+  if (n==null || n==="") return "";
+  const x = Number(n);
+  if (Number.isInteger(x)) return String(x);
+  return String(x).replace(/\.?0+$/,"");
+}
+function fmtDate(iso){
+  if(!iso) return "";
+  const p = String(iso).slice(0,10).split("-");
+  if(p.length<3) return iso;
+  return p[2]+"."+p[1]+"."+p[0].slice(2);
+}
+function cycleWeek(dateISO){
+  if(!state.cycleStart) return null;
+  const a = new Date(state.cycleStart+"T00:00:00");
+  const b = new Date((dateISO||todayISO())+"T00:00:00");
+  const days = Math.floor((b-a)/86400000);
+  if (days < 0) return null;
+  return (Math.floor(days/7) % 5) + 1;
+}
+function pendingCount(){
+  return state.sessions.filter(s=>!s._synced).length + state.sets.filter(s=>!s._synced).length;
+}
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c])); }
+function el(html){ const t=document.createElement("template"); t.innerHTML=html.trim(); return t.content.firstElementChild; }
+
+/* --------------------- Uebungen des Tages ordnen ---------------------- */
+function catalogForDay(day){
+  return state.exercises.filter(e=>e.day_tag===day && e.active!==false)
+    .sort((a,b)=> (a.sort_order||0)-(b.sort_order||0));
+}
+function exById(id){ return state.exercises.find(e=>e.id===id); }
+
+/* ---------------- Letzte Ausfuehrung einer Uebung --------------------- */
+function sessionsWithExercise(exId, excludeSessionId){
+  const map = {};
+  for (const st of state.sets){
+    if (st.exercise_id!==exId) continue;
+    if (st.session_id===excludeSessionId) continue;
+    (map[st.session_id] = map[st.session_id] || []).push(st);
+  }
+  const rows = Object.keys(map).map(sid=>{
+    const sess = state.sessions.find(s=>s.id===sid);
+    return { session_id: sid, date: sess? sess.session_date : "", sets: map[sid] };
+  }).filter(r=>r.date);
+  rows.sort((a,b)=> a.date < b.date ? 1 : a.date > b.date ? -1 : 0);
+  return rows;
+}
+function lastExecution(exId, excludeSessionId){
+  const rows = sessionsWithExercise(exId, excludeSessionId);
+  if(!rows.length) return null;
+  const r = rows[0];
+  const sets = r.sets.slice().sort((a,b)=> (a.set_no-b.set_no) || String(a.side||"").localeCompare(String(b.side||"")));
+  return { date: r.date, sets };
+}
+function todaySets(exId){
+  if(!state.active) return [];
+  return state.sets.filter(s=>s.exercise_id===exId && s.session_id===state.active.id)
+    .sort((a,b)=> (a.set_no-b.set_no) || String(a.side||"").localeCompare(String(b.side||"")));
+}
+
+/* ============================ Sync-Engine ============================= */
+function stripSession(s){
+  return { id:s.id, user_id: state.user.id, session_date:s.session_date, day_tag:s.day_tag,
+    cycle_week:s.cycle_week, session_rpe:s.session_rpe, notes:s.notes, started_at:s.started_at,
+    ended_at:s.ended_at };
+}
+function stripSet(s){
+  return { id:s.id, user_id: state.user.id, session_id:s.session_id, exercise_id:s.exercise_id,
+    set_no:s.set_no, weight_kg:s.weight_kg, reps:s.reps, rpe:s.rpe, distance_m:s.distance_m,
+    duration_s:s.duration_s, side:s.side, created_at:s.created_at };
+}
+async function push(){
+  if(!sb || !state.user || !state.online) return;
+  const uSess = state.sessions.filter(s=>!s._synced);
+  if(uSess.length){
+    const { error } = await sb.from("sessions").upsert(uSess.map(stripSession), { onConflict:"id" });
+    if(!error){ uSess.forEach(s=>s._synced=true); }
+  }
+  const uSets = state.sets.filter(s=>!s._synced);
+  if(uSets.length){
+    const { error } = await sb.from("sets").upsert(uSets.map(stripSet), { onConflict:"id" });
+    if(!error){ uSets.forEach(s=>s._synced=true); }
+  }
+  persist();
+}
+function mergeSessions(server){
+  const localUnsynced = state.sessions.filter(s=>!s._synced);
+  const unsyncedIds = new Set(localUnsynced.map(s=>s.id));
+  const fromServer = server.filter(s=>!unsyncedIds.has(s.id)).map(s=>Object.assign({}, s, {_synced:true}));
+  state.sessions = fromServer.concat(localUnsynced);
+}
+function mergeSets(server){
+  const localUnsynced = state.sets.filter(s=>!s._synced);
+  const unsyncedIds = new Set(localUnsynced.map(s=>s.id));
+  const fromServer = server.filter(s=>!unsyncedIds.has(s.id)).map(s=>Object.assign({}, s, {_synced:true}));
+  state.sets = fromServer.concat(localUnsynced);
+}
+async function pull(){
+  if(!sb || !state.user || !state.online) return;
+  const ex = await sb.from("exercises").select("*").eq("active", true).order("day_tag").order("sort_order");
+  if(!ex.error && ex.data && ex.data.length){ state.exercises = ex.data; }
+  const se = await sb.from("sessions").select("*").order("session_date", { ascending:false }).limit(300);
+  if(!se.error && se.data){ mergeSessions(se.data); }
+  const st = await sb.from("sets").select("*").order("created_at", { ascending:false }).limit(8000);
+  if(!st.error && st.data){ mergeSets(st.data); }
+  persist();
+}
+let syncTimer = null;
+function scheduleSync(){
+  if(!sb || !state.user) return;
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(runSync, 400);
+}
+async function runSync(){
+  if(!sb || !state.user || !state.online || state.syncing) return;
+  state.syncing = true; updateSyncBadge();
+  try{ await push(); await pull(); }
+  catch(e){ /* offline / transient */ }
+  // aktive Einheit nach dem Merge wieder an das Objekt in state.sessions binden
+  if(state.active){ state.active = state.sessions.find(s=>s.id===state.active.id) || state.active; }
+  state.syncing = false;
+  updateSyncBadge();
+  if(["start","history","settings"].includes(state.screen)) render();
+}
+
+/* ============================== Render =============================== */
+const app = () => document.getElementById("app");
+
+function updateSyncBadge(){
+  document.querySelectorAll("[data-syncbadge]").forEach(node=>{
+    node.replaceWith(syncBadge());
+  });
+}
+function syncBadge(){
+  const p = pendingCount();
+  let cls="dot", txt="Synchron";
+  if(!state.online){ cls="dot off"; txt="Offline"; }
+  if(p>0){ cls="dot pending"; txt = p+(p===1?" Satz nicht sync." : " nicht synchronisiert"); }
+  if(state.syncing){ txt = "Synchronisiert\u2026"; }
+  const node = el('<span class="syncbadge" data-syncbadge><span class="'+cls+'"></span><span>'+esc(txt)+'</span></span>');
+  return node;
+}
+
+function render(){
+  const root = app();
+  root.innerHTML = "";
+  switch(state.screen){
+    case "config":   root.appendChild(screenConfig()); break;
+    case "cdnerror": root.appendChild(screenCdnError()); break;
+    case "login":    root.appendChild(screenLogin()); break;
+    case "start":    root.appendChild(screenStart()); break;
+    case "session":  root.appendChild(screenSession()); break;
+    case "history":  root.appendChild(screenHistory()); break;
+    case "settings": root.appendChild(screenSettings()); break;
+    default:         root.appendChild(el('<div class="wrap center dim" style="padding-top:80px">Laden\u2026</div>'));
+  }
+  window.scrollTo(0,0);
+}
+
+/* --------------------------- Config-Hinweis --------------------------- */
+function screenConfig(){
+  const w = el('<div class="wrap"></div>');
+  w.appendChild(el('<div class="lbl" style="margin:24px 0 16px">Protokoll</div>'));
+  w.appendChild(el(
+    '<div class="banner">'+
+    'Diese App ist noch nicht mit Supabase verbunden. In <code>public/index.html</code> '+
+    'oben im Skript <code>SUPABASE_URL</code> und <code>SUPABASE_ANON_KEY</code> mit den '+
+    'Werten aus dem eigenen Supabase-Projekt ersetzen (Project Settings \u2192 API), '+
+    'danach die Migration <code>supabase/migrations/0001_init.sql</code> im SQL-Editor ausf\u00fchren.'+
+    '</div>'
+  ));
+  return w;
+}
+
+/* --------------------------- CDN-Fehler ------------------------------ */
+function screenCdnError(){
+  const w = el('<div class="wrap"></div>');
+  w.appendChild(el('<div class="lbl" style="margin:24px 0 16px">Protokoll</div>'));
+  w.appendChild(el(
+    '<div class="banner">'+
+    'Die Supabase-Bibliothek konnte nicht vom CDN geladen werden. '+
+    'Der erste Aufruf braucht kurz Internet. Bitte Netzverbindung pr\u00fcfen und erneut versuchen.'+
+    '</div>'
+  ));
+  const btn = el('<button class="btn prim">Erneut versuchen</button>');
+  btn.addEventListener("click", ()=>{ state.screen="boot"; render(); boot(); });
+  w.appendChild(btn);
+  return w;
+}
+
+/* ------------------------------ Login -------------------------------- */
+function screenLogin(){
+  const w = el('<div class="wrap" style="padding-top:56px"></div>');
+  w.appendChild(el('<div class="lbl center" style="margin-bottom:32px">Protokoll</div>'));
+  const form = el('<form></form>');
+  form.appendChild(el('<label class="field"><span class="k">E-Mail</span><input class="input" type="email" autocomplete="username" inputmode="email" name="email"/></label>'));
+  form.appendChild(el('<label class="field"><span class="k">Passwort</span><input class="input" type="password" autocomplete="current-password" name="password"/></label>'));
+  const btn = el('<button class="btn prim" type="submit" style="margin-top:8px">Anmelden</button>');
+  form.appendChild(btn);
+  const err = el('<div class="err center"></div>');
+  form.appendChild(err);
+  form.addEventListener("submit", async (e)=>{
+    e.preventDefault();
+    err.textContent="";
+    btn.disabled=true; btn.textContent="Anmelden\u2026";
+    const fd = new FormData(form);
+    const { data, error } = await sb.auth.signInWithPassword({ email:(fd.get("email")||"").trim(), password:fd.get("password")||"" });
+    btn.disabled=false; btn.textContent="Anmelden";
+    if(error){ err.textContent = "Anmeldung fehlgeschlagen"; return; }
+    state.user = data.user;
+    state.screen="start"; render();
+    scheduleSync();
+  });
+  w.appendChild(form);
+  return w;
+}
+
+/* ------------------------------- Start ------------------------------- */
+function lastSessionForDay(day){
+  const rows = state.sessions.filter(s=>s.day_tag===day && s.ended_at)
+    .sort((a,b)=> a.session_date<b.session_date?1:a.session_date>b.session_date?-1:0);
+  return rows[0] || null;
+}
+function screenStart(){
+  const w = el('<div></div>');
+  const bar = el('<div class="topbar"></div>');
+  bar.appendChild(el('<span class="ttl">Protokoll</span>'));
+  bar.appendChild(el('<span class="sp"></span>'));
+  const cw = cycleWeek(todayISO());
+  if(cw){ bar.appendChild(el('<span class="mono" style="font-size:12px;color:var(--t2)">Woche '+cw+'/5</span>')); }
+  bar.appendChild(el('<span class="sp" style="flex:0 0 8px"></span>'));
+  bar.appendChild(syncBadge());
+  w.appendChild(bar);
+
+  const c = el('<div class="wrap"></div>');
+  for(const d of DAYS){
+    const last = lastSessionForDay(d);
+    const cnt = catalogForDay(d).length;
+    const sub = (last? ("zuletzt "+fmtDate(last.session_date)) : "noch keine Einheit") + "  \u00b7  "+cnt+" \u00dcbungen";
+    const b = el('<button class="daybtn"><span class="tag">'+d+'</span><span class="meta"><span class="n">'+esc(DAY_NAMES[d])+'</span><span class="s">'+esc(sub)+'</span></span></button>');
+    b.addEventListener("click", ()=> startSession(d));
+    c.appendChild(b);
+  }
+  c.appendChild(el('<div class="spacer"></div>'));
+  const hb = el('<button class="btn ghost">Verlauf</button>');
+  hb.addEventListener("click", ()=>{ state.screen="history"; state.histExercise=null; render(); });
+  c.appendChild(hb);
+  c.appendChild(el('<div class="spacer"></div>'));
+  const sb2 = el('<button class="btn ghost dim">Einstellungen</button>');
+  sb2.addEventListener("click", ()=>{ state.screen="settings"; render(); });
+  c.appendChild(sb2);
+  w.appendChild(c);
+  return w;
+}
+
+function startSession(day){
+  // laufende (nicht beendete) Einheit desselben Tages von heute fortsetzen?
+  const existing = state.sessions.find(s=>s.day_tag===day && s.session_date===todayISO() && !s.ended_at);
+  let sess;
+  if(existing){ sess = existing; }
+  else{
+    sess = { id:uuid(), user_id: state.user? state.user.id : null, session_date: todayISO(), day_tag: day,
+      cycle_week: cycleWeek(todayISO()), session_rpe:null, notes:null,
+      started_at: new Date().toISOString(), ended_at:null, _synced:false };
+    state.sessions.unshift(sess);
+    persist(); scheduleSync();
+  }
+  state.active = sess;
+  state.dayList = catalogForDay(day).slice();
+  state.ui = {};
+  state.screen = "session";
+  render();
+}
+
+/* ---------------------------- Einheit laeuft ------------------------- */
+function uiFor(ex){
+  if(!state.ui[ex.id]){
+    let rpe = 7;
+    if(ex.target_rpe){ const m = String(ex.target_rpe).match(/\d+/); if(m) rpe = Number(m[0]); }
+    state.ui[ex.id] = { expanded:false, side:"beide", rpe };
+  }
+  return state.ui[ex.id];
+}
+function screenSession(){
+  const w = el('<div></div>');
+  const bar = el('<div class="topbar"></div>');
+  const back = el('<button class="tbtn">\u2039 Start</button>');
+  back.addEventListener("click", ()=>{ state.screen="start"; render(); scheduleSync(); });
+  bar.appendChild(back);
+  bar.appendChild(el('<span class="ttl">Kraft '+state.active.day_tag+'</span>'));
+  bar.appendChild(el('<span class="sp"></span>'));
+  bar.appendChild(syncBadge());
+  w.appendChild(bar);
+
+  const c = el('<div class="wrap"></div>');
+  const list = el('<div class="card"></div>');
+  state.dayList.forEach((ex, i)=> list.appendChild(exerciseRow(ex, i)));
+  c.appendChild(list);
+
+  const add = el('<button class="btn ghost">+ \u00dcbung hinzuf\u00fcgen</button>');
+  add.addEventListener("click", openAddSheet);
+  c.appendChild(add);
+  c.appendChild(el('<div class="spacer"></div>'));
+
+  const end = el('<button class="btn prim">Einheit beenden</button>');
+  end.addEventListener("click", endSession);
+  c.appendChild(end);
+  w.appendChild(c);
+  return w;
+}
+
+function unitLabel(ex){
+  const parts = [];
+  if(ex.target_sets) parts.push(ex.target_sets+" S\u00e4tze");
+  if(ex.target_reps_low){
+    parts.push(ex.target_reps_high && ex.target_reps_high!==ex.target_reps_low
+      ? (ex.target_reps_low+"\u2013"+ex.target_reps_high+" Wdh.")
+      : (ex.target_reps_low+" Wdh."));
+  }
+  if(ex.unit_type==="distance") parts.push("Distanz m");
+  if(ex.unit_type==="time") parts.push("Zeit s");
+  if(ex.target_rpe) parts.push("RPE "+ex.target_rpe);
+  return parts.join("  \u00b7  ");
+}
+
+function exerciseRow(ex, i){
+  const u = uiFor(ex);
+  const row = el('<div class="exrow" data-ex="'+ex.id+'"></div>');
+  const done = todaySets(ex.id);
+  const head = el('<button class="exhead'+(done.length?' done':'')+'"></button>');
+  head.appendChild(el('<span class="idx num">'+(i+1)+'</span>'));
+  head.appendChild(el('<span class="nm"><span class="n">'+esc(ex.name)+'</span><span class="t">'+esc(unitLabel(ex))+'</span></span>'));
+  const doneNos = new Set(done.map(s=>s.set_no));
+  head.appendChild(el('<span class="cnt num">'+(doneNos.size? doneNos.size+" \u00d7" : "")+'</span>'));
+  head.appendChild(el('<span class="chev">'+(u.expanded?"\u2013":"+")+'</span>'));
+  head.addEventListener("click", ()=>{ u.expanded=!u.expanded; render(); });
+  row.appendChild(head);
+  if(u.expanded) row.appendChild(exerciseBody(ex));
+  return row;
+}
+
+function setValueStr(ex, s){
+  if(ex.unit_type==="time") return fmtNum(s.duration_s)+" s";
+  if(ex.unit_type==="distance") return fmtNum(s.distance_m)+" m";
+  if(ex.unit_type==="reps") return fmtNum(s.reps)+" Wdh.";
+  return fmtNum(s.weight_kg)+" kg \u00d7 "+fmtNum(s.reps);
+}
+function refValueStr(ex, s){
+  const side = s.side? " "+s.side : "";
+  return setValueStr(ex, s)+side;
+}
+
+function exerciseBody(ex){
+  const u = uiFor(ex);
+  const body = el('<div class="exbody"></div>');
+
+  // Referenzzeile: letzte Ausfuehrung
+  const last = lastExecution(ex.id, state.active.id);
+  if(last){
+    const parts = last.sets.map(s=> refValueStr(ex, s));
+    body.appendChild(el('<div class="refline"><b>Zuletzt '+fmtDate(last.date)+':</b>  '+esc(parts.join("   \u00b7   "))+'</div>'));
+  } else {
+    body.appendChild(el('<div class="refline"><b>Keine fr\u00fchere Ausf\u00fchrung.</b></div>'));
+  }
+
+  // Bereits erfasste Saetze heute
+  const saved = todaySets(ex.id);
+  const savedWrap = el('<div data-saved></div>');
+  renderSavedSets(savedWrap, ex, saved, last);
+  body.appendChild(savedWrap);
+
+  // Seitenumschalter (unilateral)
+  if(ex.unilateral){
+    const sbar = el('<div class="sidebar"></div>');
+    [["beide","L+R"],["L","L"],["R","R"]].forEach(([k,lab])=>{
+      const b = el('<button class="sidebtn'+(u.side===k?' on':'')+'">'+lab+'</button>');
+      b.addEventListener("click", ()=>{ u.side=k; render(); });
+      sbar.appendChild(b);
+    });
+    body.appendChild(sbar);
+  }
+
+  // Eingabe (Autofill)
+  body.appendChild(inputBlock(ex, savedWrap));
+
+  // RPE je Uebung
+  const rpe = el('<div class="rpe"><span class="k">RPE</span><input type="range" min="1" max="10" step="1" value="'+u.rpe+'"/><span class="v num">'+u.rpe+'</span></div>');
+  const range = rpe.querySelector("input"), vv = rpe.querySelector(".v");
+  range.addEventListener("input", ()=>{ u.rpe=Number(range.value); vv.textContent=range.value; });
+  range.addEventListener("change", ()=>{
+    // RPE auf alle heutigen Saetze dieser Uebung anwenden
+    todaySets(ex.id).forEach(s=>{ s.rpe=u.rpe; s._synced=false; });
+    persist(); scheduleSync();
+  });
+  body.appendChild(rpe);
+
+  return body;
+}
+
+function renderSavedSets(wrap, ex, saved, last){
+  wrap.innerHTML="";
+  // gruppieren nach set_no (bei unilateral L+R zusammen)
+  const byNo = {};
+  saved.forEach(s=>{ (byNo[s.set_no]=byNo[s.set_no]||[]).push(s); });
+  const nos = Object.keys(byNo).map(Number).sort((a,b)=>a-b);
+  nos.forEach(no=>{
+    const grp = byNo[no];
+    grp.sort((a,b)=> String(a.side||"").localeCompare(String(b.side||"")));
+    grp.forEach((s, gi)=>{
+      const line = el('<div class="savedset"></div>');
+      line.appendChild(el('<span class="sn num">'+(gi===0? no+"." : "")+'</span>'));
+      const sideTag = s.side? '<span class="dim">'+s.side+'</span> ' : "";
+      line.appendChild(el('<span class="vl num">'+sideTag+esc(setValueStr(ex, s))+'</span>'));
+      // Delta gegen Referenz
+      const dl = deltaFor(ex, s, last);
+      line.appendChild(el('<span class="dl num '+(dl.cls)+'">'+esc(dl.txt)+'</span>'));
+      const del = el('<button class="del" aria-label="l\u00f6schen">\u00d7</button>');
+      del.addEventListener("click", ()=> deleteSet(s.id, ex));
+      line.appendChild(del);
+      wrap.appendChild(line);
+    });
+  });
+}
+
+function deltaFor(ex, s, last){
+  if(ex.unit_type!=="weight_reps" || !last) return { cls:"dim", txt:"" };
+  const ref = last.sets.find(r=> r.set_no===s.set_no && (!s.side || r.side===s.side)) || last.sets.find(r=> r.set_no===s.set_no) || last.sets[0];
+  if(!ref) return { cls:"dim", txt:"" };
+  const w = Number(s.weight_kg||0), rw = Number(ref.weight_kg||0);
+  const r = Number(s.reps||0), rr = Number(ref.reps||0);
+  // mehr Gewicht ODER mehr Wdh. bei gleichem Gewicht = gruen; sonst grau. Kein Rot.
+  if(w>rw || (w===rw && r>rr)) return { cls:"grn", txt:"\u2197" };
+  return { cls:"dim", txt:"" };
+}
+
+function inputBlock(ex, savedWrap){
+  const u = uiFor(ex);
+  const block = el('<div></div>');
+  const nextNo = nextSetNo(ex.id);
+  const af = autofill(ex);
+
+  let inputs;
+  if(ex.unit_type==="time"){
+    inputs = stepGrid([["duration","Zeit (s)", af.duration_s, TIME_STEP, 1]]);
+  } else if(ex.unit_type==="distance"){
+    inputs = stepGrid([["distance","Distanz (m)", af.distance_m, DIST_STEP, 1]]);
+  } else if(ex.unit_type==="reps"){
+    inputs = stepGrid([["reps","Wiederholungen", af.reps, 1, 0]]);
+  } else {
+    inputs = stepGrid([["weight","Gewicht (kg)", af.weight_kg, WEIGHT_STEP, 2],["reps","Wdh.", af.reps, 1, 0]]);
+  }
+  block.appendChild(inputs.node);
+
+  const save = el('<button class="btn prim">Satz '+nextNo+' speichern</button>');
+  save.addEventListener("click", ()=>{
+    const vals = inputs.read();
+    saveSet(ex, vals, u);
+    // gespeicherte Liste + Autofill aktualisieren, ohne Fokusverlust im Rest
+    const last = lastExecution(ex.id, state.active.id);
+    renderSavedSets(savedWrap, ex, todaySets(ex.id), last);
+    const af2 = autofill(ex);
+    inputs.reset(af2);
+    save.textContent = "Satz "+nextSetNo(ex.id)+" speichern";
+    // Kopfzeile-Zaehler aktualisieren
+    const head = block.closest(".exrow").querySelector(".exhead");
+    head.classList.add("done");
+    const cnt = head.querySelector(".cnt");
+    const grp = new Set(todaySets(ex.id).map(s=>s.set_no));
+    cnt.textContent = grp.size+" \u00d7";
+  });
+  block.appendChild(save);
+  return block;
+}
+
+function stepGrid(fields){
+  const node = el('<div class="inputgrid'+(fields.length===1?' one':'')+'"></div>');
+  const refs = {};
+  fields.forEach(([key, label, val, step, dec])=>{
+    const cell = el('<div></div>');
+    cell.appendChild(el('<span class="steplbl">'+esc(label)+'</span>'));
+    const st = el('<div class="stepper"></div>');
+    const minus = el('<button type="button" aria-label="minus">\u2212</button>');
+    const inp = el('<input inputmode="decimal" type="text" value="'+(val==null?"":esc(fmtNum(val)))+'"/>');
+    const plus = el('<button type="button" aria-label="plus">+</button>');
+    const round = (x)=> dec>0 ? Number(x.toFixed(dec)) : Math.round(x);
+    minus.addEventListener("click", ()=>{ let x=parseFloat(String(inp.value).replace(",","."))||0; x=round(Math.max(0, x-step)); inp.value=fmtNum(x); });
+    plus.addEventListener("click", ()=>{ let x=parseFloat(String(inp.value).replace(",","."))||0; x=round(x+step); inp.value=fmtNum(x); });
+    st.appendChild(minus); st.appendChild(inp); st.appendChild(plus);
+    cell.appendChild(st);
+    node.appendChild(cell);
+    refs[key]=inp;
+  });
+  const read = ()=>{
+    const out = {};
+    for(const k in refs){ const v=String(refs[k].value).replace(",","."); out[k]= v===""? null : Number(v); }
+    return out;
+  };
+  const reset = (af)=>{
+    if(refs.weight) refs.weight.value = af.weight_kg==null?"":fmtNum(af.weight_kg);
+    if(refs.reps) refs.reps.value = af.reps==null?"":fmtNum(af.reps);
+    if(refs.distance) refs.distance.value = af.distance_m==null?"":fmtNum(af.distance_m);
+    if(refs.duration) refs.duration.value = af.duration_s==null?"":fmtNum(af.duration_s);
+  };
+  return { node, read, reset };
+}
+
+function nextSetNo(exId){
+  const nos = new Set(todaySets(exId).map(s=>s.set_no));
+  return nos.size + 1;
+}
+function autofill(ex){
+  // 1) letzter heute erfasster Satz  2) passender Satz der letzten Ausfuehrung  3) leer
+  const today = todaySets(ex.id);
+  if(today.length){
+    const lastToday = today[today.length-1];
+    return { weight_kg:lastToday.weight_kg, reps:lastToday.reps, distance_m:lastToday.distance_m, duration_s:lastToday.duration_s };
+  }
+  const last = lastExecution(ex.id, state.active.id);
+  if(last && last.sets.length){
+    const no = nextSetNo(ex.id);
+    const ref = last.sets.find(s=>s.set_no===no) || last.sets[0];
+    return { weight_kg:ref.weight_kg, reps:ref.reps, distance_m:ref.distance_m, duration_s:ref.duration_s };
+  }
+  return { weight_kg:null, reps:null, distance_m:null, duration_s:null };
+}
+
+function saveSet(ex, vals, u){
+  const no = nextSetNo(ex.id);
+  const base = {
+    session_id: state.active.id, exercise_id: ex.id, set_no: no,
+    weight_kg: vals.weight!=null? vals.weight : null,
+    reps: vals.reps!=null? Math.round(vals.reps) : null,
+    rpe: u.rpe!=null? u.rpe : null,
+    distance_m: vals.distance!=null? vals.distance : null,
+    duration_s: vals.duration!=null? Math.round(vals.duration) : null,
+  };
+  const sides = ex.unilateral ? (u.side==="beide"? ["L","R"] : [u.side]) : [null];
+  const now = Date.now();
+  sides.forEach((side, k)=>{
+    const rec = Object.assign({ id:uuid(), user_id: state.user? state.user.id : null,
+      created_at: new Date(now+k).toISOString(), side: side, _synced:false }, base);
+    state.sets.push(rec);
+  });
+  persist();
+  scheduleSync();
+}
+
+function deleteSet(setId, ex){
+  const rec = state.sets.find(s=>s.id===setId);
+  if(!rec) return;
+  // ganze Satz-Nr dieser Uebung/Einheit entfernen (bei unilateral L+R beide Seiten)
+  const victims = state.sets.filter(s=> s.session_id===rec.session_id && s.exercise_id===rec.exercise_id && s.set_no===rec.set_no);
+  const victimIds = new Set(victims.map(s=>s.id));
+  state.sets = state.sets.filter(s=> !victimIds.has(s.id));
+  renumber(ex.id, rec.session_id);
+  persist();
+  // bereits synchronisierte Saetze auch serverseitig entfernen
+  if(state.online && sb && state.user){
+    const synced = victims.filter(s=>s._synced).map(s=>s.id);
+    if(synced.length){ sb.from("sets").delete().in("id", synced).then(()=>{}); }
+  }
+  scheduleSync();
+  render();
+}
+function renumber(exId, sessionId){
+  const rows = state.sets.filter(s=>s.exercise_id===exId && s.session_id===sessionId)
+    .sort((a,b)=> (a.created_at<b.created_at?-1:a.created_at>b.created_at?1:0));
+  // fortlaufende Set-Nr je Zeitgruppe (L+R teilen sich eine Nummer)
+  let no = 0; let lastKey = null;
+  rows.forEach(s=>{
+    const key = String(s.created_at).slice(0,19);
+    if(key!==lastKey){ no++; lastKey = key; }
+    if(s.set_no!==no){ s.set_no = no; s._synced = false; }
+  });
+}
+
+/* ---------------------- Uebung hinzufuegen (Sheet) -------------------- */
+function openAddSheet(){
+  const present = new Set(state.dayList.map(e=>e.id));
+  const sheet = el('<div class="sheet"></div>');
+  const inner = el('<div class="inner"></div>');
+  inner.appendChild(el('<div class="ph">\u00dcbung hinzuf\u00fcgen</div>'));
+  ["A","B","C","X"].forEach(day=>{
+    const items = state.exercises.filter(e=>e.day_tag===day && e.active!==false && !present.has(e.id))
+      .sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
+    if(!items.length) return;
+    inner.appendChild(el('<div class="ph" style="color:var(--t2)">Tag '+day+'</div>'));
+    items.forEach(ex=>{
+      const b = el('<button class="pick"><span class="nm" style="flex:1"><span class="n">'+esc(ex.name)+'</span></span><span class="dim mono">+</span></button>');
+      b.addEventListener("click", ()=>{
+        state.dayList.push(ex);
+        uiFor(ex).expanded = true;
+        document.body.removeChild(sheet);
+        render();
+      });
+      inner.appendChild(b);
+    });
+  });
+  sheet.appendChild(inner);
+  sheet.addEventListener("click", (e)=>{ if(e.target===sheet) document.body.removeChild(sheet); });
+  document.body.appendChild(sheet);
+}
+
+function endSession(){
+  // sicher das Objekt aus state.sessions treffen (Merge kann Referenz getauscht haben)
+  const sess = state.sessions.find(s=>s.id===state.active.id) || state.active;
+  sess.ended_at = new Date().toISOString();
+  sess._synced = false;
+  persist();
+  scheduleSync();
+  state.active = null; state.dayList = []; state.ui = {};
+  state.screen = "start"; render();
+}
+
+/* ------------------------------ Verlauf ------------------------------ */
+function screenHistory(){
+  const w = el('<div></div>');
+  const bar = el('<div class="topbar"></div>');
+  const back = el('<button class="tbtn">\u2039 Start</button>');
+  back.addEventListener("click", ()=>{ state.screen="start"; render(); });
+  bar.appendChild(back);
+  bar.appendChild(el('<span class="ttl">Verlauf</span>'));
+  bar.appendChild(el('<span class="sp"></span>'));
+  bar.appendChild(syncBadge());
+  w.appendChild(bar);
+
+  const c = el('<div class="wrap"></div>');
+
+  // Uebungsauswahl -> Tabelle letzte 10 Ausfuehrungen
+  c.appendChild(el('<div class="lbl" style="margin:6px 0 8px">\u00dcbung auswerten</div>'));
+  const sel = el('<select class="input" style="margin-bottom:14px"></select>');
+  sel.appendChild(el('<option value="">\u2013 \u00dcbung w\u00e4hlen \u2013</option>'));
+  state.exercises.slice().sort((a,b)=>String(a.name).localeCompare(String(b.name))).forEach(ex=>{
+    const o = el('<option value="'+ex.id+'">'+esc(ex.name)+'</option>');
+    if(state.histExercise===ex.id) o.selected=true;
+    sel.appendChild(o);
+  });
+  sel.addEventListener("change", ()=>{ state.histExercise = sel.value||null; render(); });
+  c.appendChild(sel);
+  if(state.histExercise){ c.appendChild(exerciseTable(state.histExercise)); }
+
+  // Letzte 20 Einheiten
+  c.appendChild(el('<div class="lbl" style="margin:22px 0 4px">Letzte Einheiten</div>'));
+  const done = state.sessions.filter(s=>s.ended_at)
+    .sort((a,b)=> a.session_date<b.session_date?1:a.session_date>b.session_date?-1: (a.started_at<b.started_at?1:-1))
+    .slice(0,20);
+  if(!done.length){ c.appendChild(el('<div class="refline">Noch keine abgeschlossenen Einheiten.</div>')); }
+  const listWrap = el('<div class="card"></div>');
+  done.forEach(s=>{
+    const nSets = new Set(state.sets.filter(x=>x.session_id===s.id).map(x=>x.exercise_id+"#"+x.set_no)).size;
+    const r = el('<button class="hrow"><span class="tag num">'+s.day_tag+'</span><span class="m"><span class="d">'+fmtDate(s.session_date)+'</span><span class="s">'+esc(DAY_NAMES[s.day_tag]||"")+'  \u00b7  '+nSets+' S\u00e4tze'+(s.session_rpe?('  \u00b7  RPE '+s.session_rpe):'')+'</span></span><span class="r">\u203a</span></button>');
+    r.addEventListener("click", ()=> openSessionDetail(s));
+    listWrap.appendChild(r);
+  });
+  c.appendChild(listWrap);
+  w.appendChild(c);
+  return w;
+}
+
+function e1rm(weight, reps){
+  if(weight==null || reps==null || reps>12) return null;
+  return Number(weight) * (1 + Number(reps)/30);
+}
+function exerciseTable(exId){
+  const ex = exById(exId);
+  const rows = sessionsWithExercise(exId, null).slice(0,10);
+  const wrap = el('<div class="card" style="padding:6px 12px 10px"></div>');
+  if(!rows.length){ wrap.appendChild(el('<div class="refline">Keine Ausf\u00fchrungen erfasst.</div>')); return wrap; }
+  const isWR = !ex || ex.unit_type==="weight_reps";
+  const t = el('<table class="tbl"></table>');
+  if(isWR){
+    t.appendChild(el('<thead><tr><th>Datum</th><th>Top kg</th><th>Wdh.</th><th>gesch. 1RM</th></tr></thead>'));
+  } else {
+    t.appendChild(el('<thead><tr><th>Datum</th><th>Wert</th></tr></thead>'));
+  }
+  const tb = el('<tbody></tbody>');
+  rows.forEach(r=>{
+    if(isWR){
+      let top=null, topReps=null, best=null;
+      r.sets.forEach(s=>{
+        if(s.weight_kg!=null){ if(top==null || s.weight_kg>top){ top=s.weight_kg; topReps=s.reps; } }
+        const e = e1rm(s.weight_kg, s.reps); if(e!=null && (best==null || e>best)) best=e;
+      });
+      tb.appendChild(el('<tr><td>'+fmtDate(r.date)+'</td><td>'+(top!=null?fmtNum(top):"\u2013")+'</td><td>'+(topReps!=null?fmtNum(topReps):"\u2013")+'</td><td>'+(best!=null?best.toFixed(1):"\u2013")+'</td></tr>'));
+    } else {
+      const s0 = r.sets[0]||{};
+      tb.appendChild(el('<tr><td>'+fmtDate(r.date)+'</td><td>'+esc(setValueStr(ex, s0))+'</td></tr>'));
+    }
+  });
+  t.appendChild(tb);
+  wrap.appendChild(t);
+  if(isWR) wrap.appendChild(el('<div class="refline" style="padding-top:10px">1RM ist ein Sch\u00e4tzwert (Epley), keine Messung.</div>'));
+  return wrap;
+}
+
+function openSessionDetail(s){
+  const sheet = el('<div class="sheet"></div>');
+  const inner = el('<div class="inner"></div>');
+  inner.appendChild(el('<div class="ph">'+esc(DAY_NAMES[s.day_tag]||"")+'  \u00b7  '+fmtDate(s.session_date)+(s.session_rpe?('  \u00b7  RPE '+s.session_rpe):'')+'</div>'));
+  const sets = state.sets.filter(x=>x.session_id===s.id);
+  const byEx = {};
+  sets.forEach(x=>{ (byEx[x.exercise_id]=byEx[x.exercise_id]||[]).push(x); });
+  Object.keys(byEx).forEach(exId=>{
+    const ex = exById(exId) || { name:"\u00dcbung", unit_type:"weight_reps" };
+    const box = el('<div style="padding:12px 18px;border-bottom:1px solid var(--bd)"></div>');
+    box.appendChild(el('<div style="font-weight:600;margin-bottom:6px">'+esc(ex.name)+'</div>'));
+    byEx[exId].sort((a,b)=>(a.set_no-b.set_no)||String(a.side||"").localeCompare(String(b.side||""))).forEach(st=>{
+      const side = st.side? '<span class="dim">'+st.side+'</span> ' : "";
+      box.appendChild(el('<div class="mono" style="font-size:13px;color:var(--t2);padding:2px 0">'+st.set_no+'.  '+side+esc(setValueStr(ex, st))+(st.rpe?('   RPE '+fmtNum(st.rpe)):'')+'</div>'));
+    });
+    inner.appendChild(box);
+  });
+  if(!sets.length) inner.appendChild(el('<div class="refline" style="padding:16px 18px">Keine S\u00e4tze erfasst.</div>'));
+  sheet.appendChild(inner);
+  sheet.addEventListener("click", (e)=>{ if(e.target===sheet) document.body.removeChild(sheet); });
+  document.body.appendChild(sheet);
+}
+
+/* ---------------------------- Einstellungen -------------------------- */
+function screenSettings(){
+  const w = el('<div></div>');
+  const bar = el('<div class="topbar"></div>');
+  const back = el('<button class="tbtn">\u2039 Start</button>');
+  back.addEventListener("click", ()=>{ state.screen="start"; render(); });
+  bar.appendChild(back);
+  bar.appendChild(el('<span class="ttl">Einstellungen</span>'));
+  w.appendChild(bar);
+
+  const c = el('<div class="wrap"></div>');
+  const f = el('<label class="field"><span class="k">Zyklus-Startdatum</span><input class="input" type="date" value="'+(state.cycleStart||"")+'"/></label>');
+  const di = f.querySelector("input");
+  di.addEventListener("change", ()=>{ state.cycleStart = di.value||null; persist(); });
+  c.appendChild(f);
+  const cw = cycleWeek(todayISO());
+  c.appendChild(el('<div class="refline">'+(cw? ("Aktuell: Zykluswoche "+cw+" von 5.") : "Kein Startdatum gesetzt \u2013 keine Wochenanzeige.")+'</div>'));
+
+  c.appendChild(el('<div class="spacer"></div>'));
+  const p = pendingCount();
+  const su = el('<button class="btn ghost">Nicht synchronisierte S\u00e4tze anzeigen ('+p+')</button>');
+  su.addEventListener("click", ()=> showUnsynced());
+  c.appendChild(su);
+
+  const sf = el('<button class="btn ghost">Jetzt synchronisieren</button>');
+  sf.addEventListener("click", ()=>{ runSync(); });
+  c.appendChild(sf);
+
+  c.appendChild(el('<div class="spacer"></div>'));
+  const out = el('<button class="btn ghost dim">Abmelden</button>');
+  out.addEventListener("click", async ()=>{
+    await sb.auth.signOut();
+    state.user=null; state.active=null; state.screen="login"; render();
+  });
+  c.appendChild(out);
+  w.appendChild(c);
+  return w;
+}
+function showUnsynced(){
+  const un = state.sets.filter(s=>!s._synced);
+  const sheet = el('<div class="sheet"></div>');
+  const inner = el('<div class="inner"></div>');
+  inner.appendChild(el('<div class="ph">Nicht synchronisierte S\u00e4tze ('+un.length+')</div>'));
+  if(!un.length) inner.appendChild(el('<div class="refline" style="padding:16px 18px">Alles synchronisiert.</div>'));
+  un.forEach(s=>{
+    const ex = exById(s.exercise_id) || { name:"?", unit_type:"weight_reps" };
+    inner.appendChild(el('<div class="mono" style="font-size:13px;color:var(--t2);padding:10px 18px;border-bottom:1px solid var(--bd)">'+fmtDate(s.created_at)+'  \u00b7  '+esc(ex.name)+'  \u00b7  '+esc(setValueStr(ex, s))+'</div>'));
+  });
+  sheet.appendChild(inner);
+  sheet.addEventListener("click", (e)=>{ if(e.target===sheet) document.body.removeChild(sheet); });
+  document.body.appendChild(sheet);
+}
+
+/* ------------------------------- Boot -------------------------------- */
+window.addEventListener("online", ()=>{ state.online=true; updateSyncBadge(); scheduleSync(); });
+window.addEventListener("offline", ()=>{ state.online=false; updateSyncBadge(); });
+
+async function boot(){
+  // Nicht konfiguriert -> Hinweis anzeigen, ganz ohne CDN.
+  if(!CONFIGURED){ state.screen="config"; render(); return; }
+  // Supabase-Client erst jetzt laden (mit CDN-Fallback).
+  if(!sb){
+    try{
+      if(!createClient) createClient = await loadSupabase();
+      sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
+      });
+    }catch(e){
+      state.screen="cdnerror"; render(); return;
+    }
+    sb.auth.onAuthStateChange((event, session)=>{
+      state.user = session? session.user : null;
+    });
+  }
+  const { data } = await sb.auth.getSession();
+  if(data && data.session){
+    state.user = data.session.user;
+    state.screen = "start"; render();
+    scheduleSync();
+  } else {
+    state.screen = "login"; render();
+  }
+}
+boot().catch(function(e){
+  const root = document.getElementById("app");
+  if(root){ root.innerHTML = '<div class="wrap" style="padding-top:80px;color:#d29922;font-family:ui-monospace,monospace;font-size:14px">Fehler beim Start: '+String(e && e.message ? e.message : e)+'</div>'; }
+});
+</script>
+</body>
+</html>
