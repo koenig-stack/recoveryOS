@@ -6,20 +6,46 @@
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black"/>
 <meta name="apple-mobile-web-app-title" content="Protokoll"/>
-<meta name="theme-color" content="#0d0d0d"/>
+<meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)"/>
+<meta name="theme-color" content="#0d0d0d" media="(prefers-color-scheme: dark)"/>
 <title>Protokoll</title>
 <style>
   :root{
+    /* Hell (Standard) */
+    --bg:#f2f2f7; --s1:#ffffff; --s2:#ffffff; --s3:#ececef;
+    --bd:#e4e4e8; --bd2:#d5d5da;
+    --t1:#1c1c1e; --t2:#6b6b70; --t3:#a3a3a8;
+    --grn:#248a3d; --grn-bg:#e6f4ea;
+    --acc:#1c1c1e;
+    --warn:#b25000;
+    --primbg:#1c1c1e; --primfg:#ffffff;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+    --r:10px;
+  }
+  /* Dunkel: Systemeinstellung (sofern nicht manuell auf Hell gestellt) */
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0d0d0d; --s1:#151515; --s2:#1c1c1c; --s3:#242424;
+      --bd:#2c2c2c; --bd2:#383838;
+      --t1:#e9e9e9; --t2:#8c8c8c; --t3:#5a5a5a;
+      --grn:#3fb950; --grn-bg:#0f2417;
+      --acc:#d0d0d0;
+      --warn:#d29922;
+      --primbg:#e9e9e9; --primfg:#111111;
+    }
+  }
+  /* Dunkel: manuell erzwungen (gewinnt auch bei hellem System) */
+  :root[data-theme="dark"]{
     --bg:#0d0d0d; --s1:#151515; --s2:#1c1c1c; --s3:#242424;
     --bd:#2c2c2c; --bd2:#383838;
     --t1:#e9e9e9; --t2:#8c8c8c; --t3:#5a5a5a;
     --grn:#3fb950; --grn-bg:#0f2417;
     --acc:#d0d0d0;
     --warn:#d29922;
-    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
-    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
-    --r:8px;
+    --primbg:#e9e9e9; --primfg:#111111;
   }
+  :root{color-scheme:light dark}
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
   html{-webkit-text-size-adjust:100%}
   body{
@@ -61,8 +87,8 @@
   .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 18px;
     border-radius:var(--r);background:var(--s2);border:1px solid var(--bd2);color:var(--t1);font-size:15px;font-weight:500;width:100%;transition:background .12s ease}
   .btn:active{background:var(--s3)}
-  .btn.prim{background:#e9e9e9;color:#111;border-color:#e9e9e9;font-weight:600}
-  .btn.prim:active{background:#cfcfcf}
+  .btn.prim{background:var(--primbg);color:var(--primfg);border-color:var(--primbg);font-weight:600}
+  .btn.prim:active{opacity:.85}
   .btn.ghost{background:transparent}
   .btn.sm{min-height:44px;font-size:14px;padding:0 14px;width:auto}
 
@@ -189,6 +215,8 @@ const state = {
   exercises: LS.get("tp_ex", []),
   sessions: LS.get("tp_sessions", []),   // lokale Session-Objekte (mit _synced)
   sets: LS.get("tp_sets", []),           // lokale Satz-Objekte (mit _synced)
+  health: LS.get("tp_health", []),       // Gesundheitsdaten je Tag (mit _synced)
+  theme: LS.get("tp_theme", "system"),   // "system" | "light" | "dark"
   cycleStart: LS.get("tp_cycle_start", null),
   online: navigator.onLine,
   syncing: false,
@@ -230,7 +258,13 @@ function persist(){
   LS.set("tp_sessions", state.sessions);
   LS.set("tp_sets", state.sets);
   LS.set("tp_ex", state.exercises);
+  LS.set("tp_health", state.health);
   LS.set("tp_cycle_start", state.cycleStart);
+}
+function applyTheme(){
+  const r = document.documentElement;
+  if(state.theme==="system"){ r.removeAttribute("data-theme"); }
+  else { r.setAttribute("data-theme", state.theme); }
 }
 function fmtNum(n){
   if (n==null || n==="") return "";
@@ -253,7 +287,10 @@ function cycleWeek(dateISO){
   return (Math.floor(days/7) % 5) + 1;
 }
 function pendingCount(){
-  return state.sessions.filter(s=>!s._synced).length + state.sets.filter(s=>!s._synced).length;
+  return state.sessions.filter(s=>!s._synced).length
+    + state.sets.filter(s=>!s._synced).length
+    + state.exercises.filter(e=>e._synced===false).length
+    + state.health.filter(h=>!h._synced).length;
 }
 function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c])); }
 function el(html){ const t=document.createElement("template"); t.innerHTML=html.trim(); return t.content.firstElementChild; }
@@ -304,8 +341,27 @@ function stripSet(s){
     set_no:s.set_no, weight_kg:s.weight_kg, reps:s.reps, rpe:s.rpe, distance_m:s.distance_m,
     duration_s:s.duration_s, side:s.side, created_at:s.created_at };
 }
+function stripExercise(e){
+  return { id:e.id, user_id: state.user.id, name:e.name, day_tag:e.day_tag, unit_type:e.unit_type,
+    target_sets:(e.target_sets==null?null:e.target_sets),
+    target_reps_low:(e.target_reps_low==null?null:e.target_reps_low),
+    target_reps_high:(e.target_reps_high==null?null:e.target_reps_high),
+    target_rpe:(e.target_rpe==null?null:e.target_rpe),
+    unilateral:!!e.unilateral, sort_order:(e.sort_order==null?0:e.sort_order), active:(e.active!==false) };
+}
+function stripHealth(h){
+  return { user_id: state.user.id, day:h.day, sleep_min:h.sleep_min??null, sleep_score:h.sleep_score??null,
+    resting_hr:h.resting_hr??null, hrv_ms:h.hrv_ms??null, steps:h.steps??null, stress:h.stress??null,
+    weight_kg:h.weight_kg??null, calories:h.calories??null, notes:h.notes??null, source:h.source||"zepp" };
+}
 async function push(){
   if(!sb || !state.user || !state.online) return;
+  // Reihenfolge: eigene Uebungen zuerst (Sets referenzieren exercise_id), dann Sessions, Sets, Health.
+  const uEx = state.exercises.filter(e=>e._synced===false && e.user_id===state.user.id);
+  if(uEx.length){
+    const { error } = await sb.from("exercises").upsert(uEx.map(stripExercise), { onConflict:"id" });
+    if(!error){ uEx.forEach(e=>e._synced=true); }
+  }
   const uSess = state.sessions.filter(s=>!s._synced);
   if(uSess.length){
     const { error } = await sb.from("sessions").upsert(uSess.map(stripSession), { onConflict:"id" });
@@ -316,7 +372,18 @@ async function push(){
     const { error } = await sb.from("sets").upsert(uSets.map(stripSet), { onConflict:"id" });
     if(!error){ uSets.forEach(s=>s._synced=true); }
   }
+  const uHealth = state.health.filter(h=>!h._synced);
+  if(uHealth.length){
+    const { error } = await sb.from("health_days").upsert(uHealth.map(stripHealth), { onConflict:"user_id,day" });
+    if(!error){ uHealth.forEach(h=>h._synced=true); }
+  }
   persist();
+}
+function mergeExercises(server){
+  const localUnsynced = state.exercises.filter(e=>e._synced===false);
+  const unsyncedIds = new Set(localUnsynced.map(e=>e.id));
+  const fromServer = server.filter(e=>!unsyncedIds.has(e.id)).map(e=>Object.assign({}, e, {_synced:true}));
+  state.exercises = fromServer.concat(localUnsynced);
 }
 function mergeSessions(server){
   const localUnsynced = state.sessions.filter(s=>!s._synced);
@@ -330,14 +397,22 @@ function mergeSets(server){
   const fromServer = server.filter(s=>!unsyncedIds.has(s.id)).map(s=>Object.assign({}, s, {_synced:true}));
   state.sets = fromServer.concat(localUnsynced);
 }
+function mergeHealth(server){
+  const localUnsynced = state.health.filter(h=>!h._synced);
+  const unsyncedDays = new Set(localUnsynced.map(h=>h.day));
+  const fromServer = server.filter(h=>!unsyncedDays.has(h.day)).map(h=>Object.assign({}, h, {_synced:true}));
+  state.health = fromServer.concat(localUnsynced);
+}
 async function pull(){
   if(!sb || !state.user || !state.online) return;
   const ex = await sb.from("exercises").select("*").eq("active", true).order("day_tag").order("sort_order");
-  if(!ex.error && ex.data && ex.data.length){ state.exercises = ex.data; }
+  if(!ex.error && ex.data){ mergeExercises(ex.data); }
   const se = await sb.from("sessions").select("*").order("session_date", { ascending:false }).limit(300);
   if(!se.error && se.data){ mergeSessions(se.data); }
   const st = await sb.from("sets").select("*").order("created_at", { ascending:false }).limit(8000);
   if(!st.error && st.data){ mergeSets(st.data); }
+  const hd = await sb.from("health_days").select("*").order("day", { ascending:false }).limit(1000);
+  if(!hd.error && hd.data){ mergeHealth(hd.data); }
   persist();
 }
 let syncTimer = null;
@@ -386,6 +461,7 @@ function render(){
     case "start":    root.appendChild(screenStart()); break;
     case "session":  root.appendChild(screenSession()); break;
     case "history":  root.appendChild(screenHistory()); break;
+    case "health":   root.appendChild(screenHealth()); break;
     case "settings": root.appendChild(screenSettings()); break;
     default:         root.appendChild(el('<div class="wrap center dim" style="padding-top:80px">Laden\u2026</div>'));
   }
@@ -476,10 +552,17 @@ function screenStart(){
     b.addEventListener("click", ()=> startSession(d));
     c.appendChild(b);
   }
+  const nb = el('<button class="btn ghost">+ Einheit mit Tag &amp; Datum</button>');
+  nb.addEventListener("click", openNewSessionSheet);
+  c.appendChild(nb);
   c.appendChild(el('<div class="spacer"></div>'));
-  const hb = el('<button class="btn ghost">Verlauf</button>');
+
+  const hb = el('<button class="btn ghost">Verlauf &amp; Performance</button>');
   hb.addEventListener("click", ()=>{ state.screen="history"; state.histExercise=null; render(); });
   c.appendChild(hb);
+  const gb = el('<button class="btn ghost" style="margin-top:12px">Gesundheit (Zepp)</button>');
+  gb.addEventListener("click", ()=>{ state.screen="health"; render(); });
+  c.appendChild(gb);
   c.appendChild(el('<div class="spacer"></div>'));
   const sb2 = el('<button class="btn ghost dim">Einstellungen</button>');
   sb2.addEventListener("click", ()=>{ state.screen="settings"; render(); });
@@ -488,20 +571,52 @@ function screenStart(){
   return w;
 }
 
-function startSession(day){
-  // laufende (nicht beendete) Einheit desselben Tages von heute fortsetzen?
-  const existing = state.sessions.find(s=>s.day_tag===day && s.session_date===todayISO() && !s.ended_at);
+function openNewSessionSheet(){
+  let day = "X";
+  let date = todayISO();
+  const sheet = el('<div class="sheet"></div>');
+  const inner = el('<div class="inner" style="padding:8px 18px 26px"></div>');
+  inner.appendChild(el('<div class="ph" style="padding:16px 0 10px">Einheit erfassen</div>'));
+
+  inner.appendChild(el('<span class="steplbl">Tag</span>'));
+  const dbar = el('<div class="sidebar" style="margin-bottom:16px;flex-wrap:wrap"></div>');
+  [["A","A"],["B","B"],["C","C"],["X","Frei"]].forEach(([k,lab])=>{
+    const b = el('<button class="sidebtn'+(day===k?' on':'')+'" style="flex:0 0 22%">'+lab+'</button>');
+    b.addEventListener("click", ()=>{ day=k; dbar.querySelectorAll(".sidebtn").forEach(x=>x.classList.remove("on")); b.classList.add("on"); });
+    dbar.appendChild(b);
+  });
+  inner.appendChild(dbar);
+
+  const df = el('<label class="field"><span class="k">Datum (auch r\u00fcckdatiert m\u00f6glich)</span><input class="input" type="date" value="'+date+'"/></label>');
+  const di = df.querySelector("input");
+  di.addEventListener("change", ()=>{ date = di.value || todayISO(); });
+  inner.appendChild(df);
+
+  const go = el('<button class="btn prim">Einheit starten</button>');
+  go.addEventListener("click", ()=>{ document.body.removeChild(sheet); startSession(day, date); });
+  inner.appendChild(go);
+
+  sheet.appendChild(inner);
+  sheet.addEventListener("click", (e)=>{ if(e.target===sheet) document.body.removeChild(sheet); });
+  document.body.appendChild(sheet);
+}
+
+function startSession(day, dateISO){
+  const date = dateISO || todayISO();
+  // laufende (nicht beendete) Einheit desselben Tages/Datums fortsetzen?
+  const existing = state.sessions.find(s=>s.day_tag===day && s.session_date===date && !s.ended_at);
   let sess;
   if(existing){ sess = existing; }
   else{
-    sess = { id:uuid(), user_id: state.user? state.user.id : null, session_date: todayISO(), day_tag: day,
-      cycle_week: cycleWeek(todayISO()), session_rpe:null, notes:null,
+    sess = { id:uuid(), user_id: state.user? state.user.id : null, session_date: date, day_tag: day,
+      cycle_week: cycleWeek(date), session_rpe:null, notes:null,
       started_at: new Date().toISOString(), ended_at:null, _synced:false };
     state.sessions.unshift(sess);
     persist(); scheduleSync();
   }
   state.active = sess;
-  state.dayList = catalogForDay(day).slice();
+  // Bei "Frei" (X) startet die Liste leer -> alles per "Uebung hinzufuegen".
+  state.dayList = (day==="X") ? [] : catalogForDay(day).slice();
   state.ui = {};
   state.screen = "session";
   render();
@@ -522,14 +637,31 @@ function screenSession(){
   const back = el('<button class="tbtn">\u2039 Start</button>');
   back.addEventListener("click", ()=>{ state.screen="start"; render(); scheduleSync(); });
   bar.appendChild(back);
-  bar.appendChild(el('<span class="ttl">Kraft '+state.active.day_tag+'</span>'));
+  const ttl = state.active.day_tag==="X" ? "Freie Einheit" : ("Kraft "+state.active.day_tag);
+  bar.appendChild(el('<span class="ttl">'+ttl+'</span>'));
   bar.appendChild(el('<span class="sp"></span>'));
   bar.appendChild(syncBadge());
   w.appendChild(bar);
 
   const c = el('<div class="wrap"></div>');
+
+  // Editierbares Datum (fuer rueckdatierte Einheiten)
+  const df = el('<label class="field" style="margin-bottom:14px"><span class="k">Datum</span><input class="input" type="date" value="'+esc(state.active.session_date)+'"/></label>');
+  const di = df.querySelector("input");
+  di.addEventListener("change", ()=>{
+    state.active.session_date = di.value || state.active.session_date;
+    state.active.cycle_week = cycleWeek(state.active.session_date);
+    state.active._synced = false;
+    persist(); scheduleSync();
+  });
+  c.appendChild(df);
+
   const list = el('<div class="card"></div>');
-  state.dayList.forEach((ex, i)=> list.appendChild(exerciseRow(ex, i)));
+  if(state.dayList.length){
+    state.dayList.forEach((ex, i)=> list.appendChild(exerciseRow(ex, i)));
+  } else {
+    list.appendChild(el('<div class="refline" style="padding:16px 14px">Noch keine \u00dcbung. Unten \u201e\u00dcbung hinzuf\u00fcgen\u201c antippen.</div>'));
+  }
   c.appendChild(list);
 
   const add = el('<button class="btn ghost">+ \u00dcbung hinzuf\u00fcgen</button>');
@@ -810,11 +942,47 @@ function renumber(exId, sessionId){
 }
 
 /* ---------------------- Uebung hinzufuegen (Sheet) -------------------- */
+function createExercise(name, unit_type, unilateral, day_tag){
+  const ex = { id:uuid(), user_id: state.user? state.user.id : null, name:name, day_tag:(day_tag||"X"),
+    unit_type:(unit_type||"weight_reps"), target_sets:null, target_reps_low:null, target_reps_high:null,
+    target_rpe:null, unilateral:!!unilateral, sort_order:900, active:true, _synced:false };
+  state.exercises.push(ex);
+  persist(); scheduleSync();
+  return ex;
+}
 function openAddSheet(){
   const present = new Set(state.dayList.map(e=>e.id));
   const sheet = el('<div class="sheet"></div>');
   const inner = el('<div class="inner"></div>');
   inner.appendChild(el('<div class="ph">\u00dcbung hinzuf\u00fcgen</div>'));
+
+  // Neue eigene Uebung anlegen (dauerhaft im Katalog)
+  const createWrap = el('<div style="padding:6px 18px 14px;border-bottom:1px solid var(--bd)"></div>');
+  const toggle = el('<button class="btn ghost sm" style="width:100%">+ Neue eigene \u00dcbung anlegen</button>');
+  const form = el('<div style="display:none;margin-top:12px"></div>');
+  form.appendChild(el('<label class="field"><span class="k">Name</span><input class="input" type="text" data-f="name" placeholder="z. B. Beinpresse"/></label>'));
+  form.appendChild(el('<label class="field"><span class="k">Erfassung</span><select class="input" data-f="unit"><option value="weight_reps">Gewicht &amp; Wiederholungen</option><option value="reps">nur Wiederholungen</option><option value="distance">Distanz (m)</option><option value="time">Zeit (s)</option></select></label>'));
+  form.appendChild(el('<label class="field"><span class="k">Tag</span><select class="input" data-f="day"><option value="X">Frei / Sonstige</option><option value="A">A</option><option value="B">B</option><option value="C">C</option></select></label>'));
+  form.appendChild(el('<label style="display:flex;align-items:center;gap:10px;min-height:44px;margin-bottom:12px"><input type="checkbox" data-f="uni" style="width:22px;height:22px"/><span>Einseitig (L/R)</span></label>'));
+  const saveEx = el('<button class="btn prim">\u00dcbung speichern &amp; hinzuf\u00fcgen</button>');
+  form.appendChild(saveEx);
+  toggle.addEventListener("click", ()=>{ form.style.display = form.style.display==="none" ? "block" : "none"; });
+  saveEx.addEventListener("click", ()=>{
+    const name = (form.querySelector('[data-f="name"]').value||"").trim();
+    if(!name){ form.querySelector('[data-f="name"]').focus(); return; }
+    const unit = form.querySelector('[data-f="unit"]').value;
+    const day = form.querySelector('[data-f="day"]').value;
+    const uni = form.querySelector('[data-f="uni"]').checked;
+    const ex = createExercise(name, unit, uni, day);
+    state.dayList.push(ex);
+    uiFor(ex).expanded = true;
+    document.body.removeChild(sheet);
+    render();
+  });
+  createWrap.appendChild(toggle);
+  createWrap.appendChild(form);
+  inner.appendChild(createWrap);
+
   ["A","B","C","X"].forEach(day=>{
     const items = state.exercises.filter(e=>e.day_tag===day && e.active!==false && !present.has(e.id))
       .sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
@@ -951,6 +1119,218 @@ function openSessionDetail(s){
   document.body.appendChild(sheet);
 }
 
+/* ------------------------- Gesundheit (Zepp) ------------------------- */
+const HEALTH_FIELDS = ["sleep_min","sleep_score","resting_hr","hrv_ms","steps","stress","weight_kg","calories"];
+const HA = {
+  day:        ["date","day","datum","tag","time","zeit","timestamp"],
+  sleepmin:   ["sleepmin","sleepminutes","sleeptime","totalsleeptime","totalsleep","sleepduration","schlafminuten"],
+  sleep:      ["sleep","schlaf","schlafzeit","sleephours"],
+  deep:       ["deepsleeptime","deepsleep","tiefschlaf","deepsleepminutes"],
+  shallow:    ["shallowsleeptime","shallowsleep","leichtschlaf","lightsleep","lightsleeptime"],
+  rem:        ["remtime","rem","remsleep","remsleeptime"],
+  sleepscore: ["sleepscore","schlafscore"],
+  restinghr:  ["restinghr","restingheartrate","resting_hr","ruhepuls","ruheherzfrequenz","rhr","heartrate","hr","puls","herzfrequenz"],
+  hrv:        ["hrv","hrvms","herzratenvariabilitaet","hrvrmssd"],
+  steps:      ["steps","schritte","stepcount","schrittzahl"],
+  stress:     ["stress","stresslevel","stressscore"],
+  weight:     ["weight","weightkg","gewicht","koerpergewicht","bodyweight"],
+  calories:   ["calories","kcal","kalorien","calorie","caloriesburned"],
+};
+function haKey(h){ return String(h).toLowerCase().replace(/\(.*?\)/g,"").replace(/[^a-z0-9]/g,""); }
+function roleFor(h){ const k = haKey(h); for(const role in HA){ if(HA[role].indexOf(k)>=0) return role; } return null; }
+function hnum(v){ if(v==null||v==="") return null; const n = parseFloat(String(v).replace(",",".")); return isNaN(n)? null : n; }
+function parseDay(v){
+  if(v==null) return null; const s = String(v).trim(); let m;
+  if((m = s.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/))) return m[1]+"-"+String(m[2]).padStart(2,"0")+"-"+String(m[3]).padStart(2,"0");
+  if((m = s.match(/^(\d{1,2})[.\/](\d{1,2})[.\/](\d{4})/))) return m[3]+"-"+String(m[2]).padStart(2,"0")+"-"+String(m[1]).padStart(2,"0");
+  if((m = s.match(/^(\d{4})(\d{2})(\d{2})$/))) return m[1]+"-"+m[2]+"-"+m[3];
+  return null;
+}
+function parseSleepVal(v){
+  if(v==null||v==="") return null; const s = String(v).trim();
+  if(s.indexOf(":")>=0){ const p = s.split(":"); return (parseInt(p[0],10)||0)*60 + (parseInt(p[1],10)||0); }
+  const n = hnum(s); if(n==null) return null; return n<=24 ? Math.round(n*60) : Math.round(n);
+}
+function rowToHealth(headers, cells){
+  const rec = { day:null, sleep_min:null, sleep_score:null, resting_hr:null, hrv_ms:null, steps:null, stress:null, weight_kg:null, calories:null };
+  let deep=null, shallow=null, rem=null, sleepRaw=null;
+  headers.forEach((h,i)=>{
+    const role = roleFor(h); if(!role) return;
+    const val = cells[i]; if(val==null||String(val).trim()==="") return;
+    if(role==="day"){ rec.day = parseDay(val); return; }
+    if(role==="sleep"){ sleepRaw = val; return; }
+    if(role==="deep"){ deep = hnum(val); return; }
+    if(role==="shallow"){ shallow = hnum(val); return; }
+    if(role==="rem"){ rem = hnum(val); return; }
+    const n = hnum(val); if(n==null) return;
+    if(role==="sleepmin") rec.sleep_min = Math.round(n);
+    else if(role==="sleepscore") rec.sleep_score = Math.round(n);
+    else if(role==="restinghr"){ if(rec.resting_hr==null) rec.resting_hr = Math.round(n); }
+    else if(role==="hrv") rec.hrv_ms = Math.round(n);
+    else if(role==="steps") rec.steps = Math.round(n);
+    else if(role==="stress") rec.stress = Math.round(n);
+    else if(role==="weight") rec.weight_kg = n;
+    else if(role==="calories") rec.calories = Math.round(n);
+  });
+  if(rec.sleep_min==null){
+    if(deep!=null||shallow!=null||rem!=null) rec.sleep_min = Math.round((deep||0)+(shallow||0)+(rem||0));
+    else if(sleepRaw!=null) rec.sleep_min = parseSleepVal(sleepRaw);
+  }
+  return rec;
+}
+function splitCSV(text){
+  const lines = text.replace(/\r\n?/g,"\n").split("\n").filter(l=>l.trim().length);
+  if(!lines.length) return null;
+  const first = lines[0];
+  const delim = (first.indexOf("\t")>=0) ? "\t" : (first.indexOf(";")>=0 && first.indexOf(",")<0) ? ";" : ",";
+  return lines.map(l=> l.split(delim).map(c=> c.trim().replace(/^"|"$/g,"")));
+}
+function upsertHealthDay(rec){
+  let cur = state.health.find(h=>h.day===rec.day);
+  if(!cur){ cur = { id:uuid(), user_id: state.user? state.user.id : null, day:rec.day, source:"zepp" }; state.health.unshift(cur); }
+  HEALTH_FIELDS.forEach(f=>{ if(rec[f]!=null) cur[f]=rec[f]; });
+  if(rec.notes!=null) cur.notes = rec.notes;
+  cur._synced = false;
+}
+function importHealthText(text){
+  text = (text||"").trim();
+  if(!text) return { added:0, skipped:0, error:"Keine Daten" };
+  let records = [];
+  if(text[0]==="[" || text[0]==="{"){
+    try{ let j = JSON.parse(text); if(!Array.isArray(j)) j = [j];
+      records = j.map(o=>{ const headers = Object.keys(o); const cells = headers.map(k=>o[k]); return rowToHealth(headers, cells); });
+    }catch(e){ return { added:0, skipped:0, error:"JSON ungueltig" }; }
+  } else {
+    const rows = splitCSV(text);
+    if(!rows || rows.length<2) return { added:0, skipped:0, error:"CSV ohne Datenzeilen" };
+    const headers = rows[0];
+    records = rows.slice(1).map(cells=> rowToHealth(headers, cells));
+  }
+  let added=0, skipped=0;
+  records.forEach(r=>{ if(!r.day){ skipped++; return; } upsertHealthDay(r); added++; });
+  persist(); scheduleSync();
+  return { added, skipped };
+}
+function fmtSleep(min){ if(min==null) return "\u2013"; const h=Math.floor(min/60), m=min%60; return h+":"+String(m).padStart(2,"0"); }
+
+function screenHealth(){
+  const w = el('<div></div>');
+  const bar = el('<div class="topbar"></div>');
+  const back = el('<button class="tbtn">\u2039 Start</button>');
+  back.addEventListener("click", ()=>{ state.screen="start"; render(); });
+  bar.appendChild(back);
+  bar.appendChild(el('<span class="ttl">Gesundheit</span>'));
+  bar.appendChild(el('<span class="sp"></span>'));
+  bar.appendChild(syncBadge());
+  w.appendChild(bar);
+
+  const c = el('<div class="wrap"></div>');
+
+  // Import
+  c.appendChild(el('<div class="lbl" style="margin:6px 0 8px">Zepp-Export einspielen</div>'));
+  c.appendChild(el('<div class="banner">Zepp-Daten als <b>CSV</b> oder <b>JSON</b> importieren \u2013 eine Zeile pro Tag. Erkannt werden Spalten wie <code>date</code>, <code>sleep</code>/<code>deepSleepTime</code>+<code>shallowSleepTime</code>, <code>restingHeartRate</code>, <code>hrv</code>, <code>steps</code>, <code>stress</code>, <code>weight</code>. Vorhandene Tage werden aktualisiert, nicht doppelt angelegt.</div>'));
+
+  const fileLbl = el('<label class="btn ghost" style="display:flex">Datei w\u00e4hlen (CSV/JSON)<input type="file" accept=".csv,.json,.txt,text/csv,application/json" style="display:none"/></label>');
+  const fileInput = fileLbl.querySelector("input");
+  const status = el('<div class="err" style="color:var(--t2)"></div>');
+  fileInput.addEventListener("change", ()=>{
+    const f = fileInput.files && fileInput.files[0]; if(!f) return;
+    const reader = new FileReader();
+    reader.onload = ()=>{ const res = importHealthText(String(reader.result||"")); showImportResult(status, res); render(); };
+    reader.readAsText(f);
+  });
+  c.appendChild(fileLbl);
+
+  const ta = el('<textarea class="input" style="min-height:96px;padding:12px;margin-top:12px;width:100%" placeholder="\u2026 oder CSV/JSON hier einf\u00fcgen"></textarea>');
+  c.appendChild(ta);
+  const imp = el('<button class="btn" style="margin-top:10px">Eingef\u00fcgte Daten importieren</button>');
+  imp.addEventListener("click", ()=>{ const res = importHealthText(ta.value); showImportResult(status, res); if(!res.error){ ta.value=""; } render(); });
+  c.appendChild(imp);
+  c.appendChild(status);
+
+  // Manuell erfassen / bearbeiten
+  c.appendChild(el('<div class="lbl" style="margin:22px 0 8px">Tag manuell erfassen</div>'));
+  c.appendChild(healthForm());
+
+  // Uebersicht
+  c.appendChild(el('<div class="lbl" style="margin:22px 0 8px">\u00dcbersicht</div>'));
+  const days = state.health.slice().sort((a,b)=> a.day<b.day?1:a.day>b.day?-1:0).slice(0,60);
+  if(!days.length){ c.appendChild(el('<div class="refline">Noch keine Gesundheitsdaten.</div>')); }
+  else {
+    const box = el('<div class="card" style="padding:6px 12px 10px;overflow-x:auto"></div>');
+    const t = el('<table class="tbl"></table>');
+    t.appendChild(el('<thead><tr><th>Datum</th><th>Schlaf</th><th>Ruhe-HF</th><th>HRV</th><th>Schritte</th><th>kg</th></tr></thead>'));
+    const tb = el('<tbody></tbody>');
+    days.forEach(h=>{
+      const r = el('<tr style="cursor:pointer"><td>'+fmtDate(h.day)+'</td><td>'+fmtSleep(h.sleep_min)+'</td><td>'+(h.resting_hr!=null?h.resting_hr:"\u2013")+'</td><td>'+(h.hrv_ms!=null?h.hrv_ms:"\u2013")+'</td><td>'+(h.steps!=null?fmtNum(h.steps):"\u2013")+'</td><td>'+(h.weight_kg!=null?fmtNum(h.weight_kg):"\u2013")+'</td></tr>');
+      r.addEventListener("click", ()=> openHealthEdit(h.day));
+      tb.appendChild(r);
+    });
+    t.appendChild(tb);
+    box.appendChild(t);
+    c.appendChild(box);
+    c.appendChild(el('<div class="refline" style="padding-top:10px">Zeile antippen zum Bearbeiten. Analyse (Trends, Korrelation mit Training) l\u00e4uft extern per SQL/Chat.</div>'));
+  }
+
+  w.appendChild(c);
+  return w;
+}
+function showImportResult(node, res){
+  if(res.error){ node.style.color="var(--warn)"; node.textContent = "Import fehlgeschlagen: "+res.error; return; }
+  node.style.color="var(--t2)";
+  node.textContent = res.added+" Tag(e) importiert"+(res.skipped? (", "+res.skipped+" ohne Datum \u00fcbersprungen") : "");
+}
+function healthForm(prefill){
+  const h = prefill || {};
+  const wrap = el('<div class="card" style="padding:14px"></div>');
+  const mk = (k, label, val, mode)=> '<label class="field" style="margin-bottom:10px"><span class="k">'+label+'</span><input class="input" data-f="'+k+'" inputmode="'+(mode||"numeric")+'" value="'+(val==null?"":esc(String(val)))+'"/></label>';
+  wrap.appendChild(el('<label class="field" style="margin-bottom:10px"><span class="k">Datum</span><input class="input" type="date" data-f="day" value="'+(h.day||todayISO())+'"/></label>'));
+  const grid = el('<div class="inputgrid"></div>');
+  grid.appendChild(el(mk("sleep_min","Schlaf (Min.)", h.sleep_min)));
+  grid.appendChild(el(mk("resting_hr","Ruhe-HF", h.resting_hr)));
+  grid.appendChild(el(mk("hrv_ms","HRV (ms)", h.hrv_ms)));
+  grid.appendChild(el(mk("steps","Schritte", h.steps)));
+  grid.appendChild(el(mk("stress","Stress", h.stress)));
+  grid.appendChild(el(mk("weight_kg","Gewicht (kg)", h.weight_kg, "decimal")));
+  wrap.appendChild(grid);
+  const save = el('<button class="btn prim">Speichern</button>');
+  save.addEventListener("click", ()=>{
+    const g = (k)=> wrap.querySelector('[data-f="'+k+'"]').value;
+    const day = g("day"); if(!day){ return; }
+    const rec = { day:day,
+      sleep_min: g("sleep_min")===""?null:Math.round(hnum(g("sleep_min"))),
+      resting_hr: g("resting_hr")===""?null:Math.round(hnum(g("resting_hr"))),
+      hrv_ms: g("hrv_ms")===""?null:Math.round(hnum(g("hrv_ms"))),
+      steps: g("steps")===""?null:Math.round(hnum(g("steps"))),
+      stress: g("stress")===""?null:Math.round(hnum(g("stress"))),
+      weight_kg: g("weight_kg")===""?null:hnum(g("weight_kg")) };
+    upsertHealthDay(rec);
+    persist(); scheduleSync(); render();
+  });
+  wrap.appendChild(save);
+  return wrap;
+}
+function openHealthEdit(day){
+  const h = state.health.find(x=>x.day===day);
+  const sheet = el('<div class="sheet"></div>');
+  const inner = el('<div class="inner" style="padding:8px 18px 26px"></div>');
+  inner.appendChild(el('<div class="ph" style="padding:16px 0 10px">'+fmtDate(day)+' bearbeiten</div>'));
+  const form = healthForm(h);
+  form.style.background="transparent"; form.style.border="none"; form.style.padding="0";
+  form.querySelector(".btn.prim").addEventListener("click", ()=>{ if(document.body.contains(sheet)) document.body.removeChild(sheet); });
+  inner.appendChild(form);
+  const del = el('<button class="btn ghost" style="margin-top:10px;color:var(--warn)">Diesen Tag l\u00f6schen</button>');
+  del.addEventListener("click", ()=>{
+    state.health = state.health.filter(x=>x.day!==day);
+    if(state.online && sb && state.user && h && h._synced!==false){ sb.from("health_days").delete().eq("day", day).eq("user_id", state.user.id).then(()=>{}); }
+    persist(); if(document.body.contains(sheet)) document.body.removeChild(sheet); render();
+  });
+  inner.appendChild(del);
+  sheet.appendChild(inner);
+  sheet.addEventListener("click", (e)=>{ if(e.target===sheet) document.body.removeChild(sheet); });
+  document.body.appendChild(sheet);
+}
+
 /* ---------------------------- Einstellungen -------------------------- */
 function screenSettings(){
   const w = el('<div></div>');
@@ -962,6 +1342,20 @@ function screenSettings(){
   w.appendChild(bar);
 
   const c = el('<div class="wrap"></div>');
+
+  // Darstellung: Hell/Dunkel/System
+  c.appendChild(el('<span class="steplbl">Darstellung</span>'));
+  const tbar = el('<div class="sidebar" style="margin-bottom:18px"></div>');
+  [["system","System"],["light","Hell"],["dark","Dunkel"]].forEach(([k,lab])=>{
+    const b = el('<button class="sidebtn'+(state.theme===k?' on':'')+'">'+lab+'</button>');
+    b.addEventListener("click", ()=>{
+      state.theme = k; LS.set("tp_theme", k); applyTheme();
+      tbar.querySelectorAll(".sidebtn").forEach(x=>x.classList.remove("on")); b.classList.add("on");
+    });
+    tbar.appendChild(b);
+  });
+  c.appendChild(tbar);
+
   const f = el('<label class="field"><span class="k">Zyklus-Startdatum</span><input class="input" type="date" value="'+(state.cycleStart||"")+'"/></label>');
   const di = f.querySelector("input");
   di.addEventListener("change", ()=>{ state.cycleStart = di.value||null; persist(); });
@@ -1009,6 +1403,7 @@ window.addEventListener("online", ()=>{ state.online=true; updateSyncBadge(); sc
 window.addEventListener("offline", ()=>{ state.online=false; updateSyncBadge(); });
 
 async function boot(){
+  applyTheme();
   // Nicht konfiguriert -> Hinweis anzeigen, ganz ohne CDN.
   if(!CONFIGURED){ state.screen="config"; render(); return; }
   // Supabase-Client erst jetzt laden (mit CDN-Fallback).

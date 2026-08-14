@@ -23,9 +23,10 @@ Die App ist auf Vercel bereits lauffähig und zeigt bis zur Verbindung einen Hin
 Zum Scharfschalten:
 
 1. **Supabase-Projekt anlegen** (eigenes Projekt, nicht ein bestehendes mitbenutzen).
-2. **Migration einspielen:** Inhalt von `supabase/migrations/0001_init.sql` im
-   Supabase SQL-Editor ausführen (legt Tabellen, RLS-Policies, View `v_e1rm`
-   und den Übungskatalog an).
+2. **Migrationen einspielen:** im Supabase SQL-Editor nacheinander ausführen:
+   - `supabase/migrations/0001_init.sql` — Tabellen, RLS-Policies, View `v_e1rm`, Übungskatalog.
+   - `supabase/migrations/0002_custom_exercises_and_health.sql` — eigene Übungen
+     (user_id + Policies) und Zepp-Gesundheitsdaten (`health_days`).
 3. **Nutzer anlegen:** In der Supabase-Konsole unter *Authentication → Users*
    eine E-Mail + Passwort anlegen. Es gibt bewusst **kein** Sign-Up in der App.
 4. **Zugangsdaten eintragen:** In `public/index.html` oben im `<script>`-Block
