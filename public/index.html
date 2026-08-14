@@ -151,10 +151,13 @@
 </style>
 </head>
 <body>
-<div id="app"></div>
+<div id="app"><div class="wrap" style="padding-top:80px;text-align:center;color:#5a5a5a;font-family:ui-monospace,monospace">Laden&hellip;</div></div>
 
 <script type="module">
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+/* Supabase-Client wird erst bei Bedarf per dynamischem Import geladen
+   (siehe loadSupabase). So bleibt die App auch dann bedienbar, wenn das
+   CDN kurz nicht erreichbar ist, und zeigt notfalls eine Meldung statt
+   eines schwarzen Bildschirms. */
 
 /* =====================================================================
    KONFIGURATION  --  hier die Werte aus dem eigenen Supabase-Projekt
@@ -197,10 +200,22 @@ const state = {
 };
 
 let sb = null;
-if (CONFIGURED) {
-  sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
-  });
+let createClient = null;
+// Mehrere ESM-CDNs als Fallback: schlaegt eines fehl, wird das naechste versucht.
+const SB_CDNS = [
+  "https://esm.sh/@supabase/supabase-js@2",
+  "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm",
+  "https://cdn.skypack.dev/@supabase/supabase-js@2",
+];
+async function loadSupabase(){
+  let lastErr = null;
+  for (const url of SB_CDNS){
+    try{
+      const mod = await import(url);
+      if (mod && mod.createClient) return mod.createClient;
+    }catch(e){ lastErr = e; }
+  }
+  throw lastErr || new Error("Supabase-Bibliothek nicht ladbar");
 }
 
 /* ------------------------------ Helfer -------------------------------- */
@@ -366,6 +381,7 @@ function render(){
   root.innerHTML = "";
   switch(state.screen){
     case "config":   root.appendChild(screenConfig()); break;
+    case "cdnerror": root.appendChild(screenCdnError()); break;
     case "login":    root.appendChild(screenLogin()); break;
     case "start":    root.appendChild(screenStart()); break;
     case "session":  root.appendChild(screenSession()); break;
@@ -388,6 +404,22 @@ function screenConfig(){
     'danach die Migration <code>supabase/migrations/0001_init.sql</code> im SQL-Editor ausf\u00fchren.'+
     '</div>'
   ));
+  return w;
+}
+
+/* --------------------------- CDN-Fehler ------------------------------ */
+function screenCdnError(){
+  const w = el('<div class="wrap"></div>');
+  w.appendChild(el('<div class="lbl" style="margin:24px 0 16px">Protokoll</div>'));
+  w.appendChild(el(
+    '<div class="banner">'+
+    'Die Supabase-Bibliothek konnte nicht vom CDN geladen werden. '+
+    'Der erste Aufruf braucht kurz Internet. Bitte Netzverbindung pr\u00fcfen und erneut versuchen.'+
+    '</div>'
+  ));
+  const btn = el('<button class="btn prim">Erneut versuchen</button>');
+  btn.addEventListener("click", ()=>{ state.screen="boot"; render(); boot(); });
+  w.appendChild(btn);
   return w;
 }
 
@@ -977,10 +1009,22 @@ window.addEventListener("online", ()=>{ state.online=true; updateSyncBadge(); sc
 window.addEventListener("offline", ()=>{ state.online=false; updateSyncBadge(); });
 
 async function boot(){
+  // Nicht konfiguriert -> Hinweis anzeigen, ganz ohne CDN.
   if(!CONFIGURED){ state.screen="config"; render(); return; }
-  sb.auth.onAuthStateChange((event, session)=>{
-    state.user = session? session.user : null;
-  });
+  // Supabase-Client erst jetzt laden (mit CDN-Fallback).
+  if(!sb){
+    try{
+      if(!createClient) createClient = await loadSupabase();
+      sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
+      });
+    }catch(e){
+      state.screen="cdnerror"; render(); return;
+    }
+    sb.auth.onAuthStateChange((event, session)=>{
+      state.user = session? session.user : null;
+    });
+  }
   const { data } = await sb.auth.getSession();
   if(data && data.session){
     state.user = data.session.user;
@@ -990,7 +1034,10 @@ async function boot(){
     state.screen = "login"; render();
   }
 }
-boot();
+boot().catch(function(e){
+  const root = document.getElementById("app");
+  if(root){ root.innerHTML = '<div class="wrap" style="padding-top:80px;color:#d29922;font-family:ui-monospace,monospace;font-size:14px">Fehler beim Start: '+String(e && e.message ? e.message : e)+'</div>'; }
+});
 </script>
 </body>
 </html>
