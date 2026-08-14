@@ -6,44 +6,56 @@
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black"/>
 <meta name="apple-mobile-web-app-title" content="Protokoll"/>
-<meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)"/>
-<meta name="theme-color" content="#0d0d0d" media="(prefers-color-scheme: dark)"/>
+<meta name="theme-color" content="#eef2f8" media="(prefers-color-scheme: light)"/>
+<meta name="theme-color" content="#0a0f1a" media="(prefers-color-scheme: dark)"/>
 <title>Protokoll</title>
 <style>
   :root{
-    /* Hell (Standard) */
-    --bg:#f2f2f7; --s1:#ffffff; --s2:#ffffff; --s3:#ececef;
-    --bd:#e4e4e8; --bd2:#d5d5da;
-    --t1:#1c1c1e; --t2:#6b6b70; --t3:#a3a3a8;
-    --grn:#248a3d; --grn-bg:#e6f4ea;
-    --acc:#1c1c1e;
-    --warn:#b25000;
-    --primbg:#1c1c1e; --primfg:#ffffff;
+    /* Hell (Standard) -- kuehle Performance-Lab-Palette */
+    --bg:#eef2f8; --s1:#ffffff; --s2:#ffffff; --s3:#e9eef6;
+    --bd:#dce4ef; --bd2:#c6d2e3;
+    --t1:#0e1a2b; --t2:#54637a; --t3:#93a2b8;
+    --grn:#0f9d58; --grn-bg:#e2f6ec;
+    --accent:#0e8f9e; --accent2:#4f46e5; --acc:#0e8f9e;
+    --warn:#c2620a;
+    --primfg:#ffffff;
+    --prim-grad:linear-gradient(135deg,#0d9488 0%,#4f46e5 100%);
+    --dayA:#0d9488; --dayB:#2563eb; --dayC:#7c3aed;
+    --dayA-bg:rgba(13,148,136,.10); --dayB-bg:rgba(37,99,235,.10); --dayC-bg:rgba(124,58,237,.10);
+    --ring:rgba(79,70,229,.30);
     --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
     --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
-    --r:10px;
+    --r:12px;
   }
   /* Dunkel: Systemeinstellung (sofern nicht manuell auf Hell gestellt) */
   @media (prefers-color-scheme: dark){
     :root:not([data-theme="light"]){
-      --bg:#0d0d0d; --s1:#151515; --s2:#1c1c1c; --s3:#242424;
-      --bd:#2c2c2c; --bd2:#383838;
-      --t1:#e9e9e9; --t2:#8c8c8c; --t3:#5a5a5a;
-      --grn:#3fb950; --grn-bg:#0f2417;
-      --acc:#d0d0d0;
-      --warn:#d29922;
-      --primbg:#e9e9e9; --primfg:#111111;
+      --bg:#0a0f1a; --s1:#111827; --s2:#151f30; --s3:#1d2942;
+      --bd:#25324a; --bd2:#33455f;
+      --t1:#e8f0fb; --t2:#94a3bd; --t3:#5c6b86;
+      --grn:#4ade80; --grn-bg:#0c2a1c;
+      --accent:#2dd4bf; --accent2:#818cf8; --acc:#2dd4bf;
+      --warn:#fbbf24;
+      --primfg:#ffffff;
+      --prim-grad:linear-gradient(135deg,#0d9488 0%,#5b52e6 100%);
+      --dayA:#2dd4bf; --dayB:#38bdf8; --dayC:#a78bfa;
+      --dayA-bg:rgba(45,212,191,.14); --dayB-bg:rgba(56,189,248,.14); --dayC-bg:rgba(167,139,250,.16);
+      --ring:rgba(45,212,191,.30);
     }
   }
   /* Dunkel: manuell erzwungen (gewinnt auch bei hellem System) */
   :root[data-theme="dark"]{
-    --bg:#0d0d0d; --s1:#151515; --s2:#1c1c1c; --s3:#242424;
-    --bd:#2c2c2c; --bd2:#383838;
-    --t1:#e9e9e9; --t2:#8c8c8c; --t3:#5a5a5a;
-    --grn:#3fb950; --grn-bg:#0f2417;
-    --acc:#d0d0d0;
-    --warn:#d29922;
-    --primbg:#e9e9e9; --primfg:#111111;
+    --bg:#0a0f1a; --s1:#111827; --s2:#151f30; --s3:#1d2942;
+    --bd:#25324a; --bd2:#33455f;
+    --t1:#e8f0fb; --t2:#94a3bd; --t3:#5c6b86;
+    --grn:#4ade80; --grn-bg:#0c2a1c;
+    --accent:#2dd4bf; --accent2:#818cf8; --acc:#2dd4bf;
+    --warn:#fbbf24;
+    --primfg:#ffffff;
+    --prim-grad:linear-gradient(135deg,#0d9488 0%,#5b52e6 100%);
+    --dayA:#2dd4bf; --dayB:#38bdf8; --dayC:#a78bfa;
+    --dayA-bg:rgba(45,212,191,.14); --dayB-bg:rgba(56,189,248,.14); --dayC-bg:rgba(167,139,250,.16);
+    --ring:rgba(45,212,191,.30);
   }
   :root{color-scheme:light dark}
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -78,17 +90,20 @@
 
   .daybtn{width:100%;min-height:88px;background:var(--s1);border:1px solid var(--bd2);border-radius:var(--r);
     display:flex;align-items:center;gap:16px;padding:18px 18px;margin-bottom:12px;text-align:left;transition:background .12s ease}
-  .daybtn:active{background:var(--s2)}
-  .daybtn .tag{font-family:var(--mono);font-size:34px;font-weight:600;width:52px;text-align:center;color:var(--t1)}
+  .daybtn:active{background:var(--s2);border-color:var(--accent)}
+  .daybtn .tag{font-family:var(--mono);font-size:30px;font-weight:700;width:58px;height:62px;display:inline-flex;align-items:center;justify-content:center;border-radius:14px;color:var(--t1);background:var(--s3)}
+  .daybtn[data-day="A"] .tag{color:var(--dayA);background:var(--dayA-bg)}
+  .daybtn[data-day="B"] .tag{color:var(--dayB);background:var(--dayB-bg)}
+  .daybtn[data-day="C"] .tag{color:var(--dayC);background:var(--dayC-bg)}
   .daybtn .meta{flex:1;min-width:0}
-  .daybtn .meta .n{font-size:17px;font-weight:600}
-  .daybtn .meta .s{font-size:12px;color:var(--t2);margin-top:3px;font-family:var(--mono)}
+  .daybtn .meta .n{display:block;font-size:17px;font-weight:600}
+  .daybtn .meta .s{display:block;font-size:12px;color:var(--t2);margin-top:4px;font-family:var(--mono)}
 
   .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 18px;
     border-radius:var(--r);background:var(--s2);border:1px solid var(--bd2);color:var(--t1);font-size:15px;font-weight:500;width:100%;transition:background .12s ease}
   .btn:active{background:var(--s3)}
-  .btn.prim{background:var(--primbg);color:var(--primfg);border-color:var(--primbg);font-weight:600}
-  .btn.prim:active{opacity:.85}
+  .btn.prim{background:var(--prim-grad);color:var(--primfg);border:none;font-weight:600;letter-spacing:.01em;box-shadow:0 6px 18px -8px var(--ring)}
+  .btn.prim:active{opacity:.9;transform:translateY(1px)}
   .btn.ghost{background:transparent}
   .btn.sm{min-height:44px;font-size:14px;padding:0 14px;width:auto}
 
@@ -106,6 +121,7 @@
   .exhead .nm .t{font-family:var(--mono);font-size:11px;color:var(--t2);margin-top:2px}
   .exhead .cnt{font-family:var(--mono);font-size:13px;color:var(--t2);min-width:34px;text-align:right}
   .exhead.done .n{color:var(--t1)}
+  .exhead.done .cnt{color:var(--accent);font-weight:600}
   .chev{color:var(--t3);width:22px;text-align:center;font-size:13px}
 
   .exbody{padding:0 14px 16px}
@@ -118,6 +134,7 @@
   .savedset .dl{font-size:12px}
   .savedset .del{min-width:40px;min-height:32px;color:var(--t3);text-align:right}
   .grn{color:var(--grn)}
+  .brand{font-family:var(--sans);font-weight:800;font-size:30px;letter-spacing:-.01em;background:var(--prim-grad);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent}
 
   .stepper{display:flex;align-items:stretch;gap:0;border:1px solid var(--bd2);border-radius:var(--r);overflow:hidden;background:var(--s2)}
   .stepper button{width:48px;min-height:52px;font-size:24px;font-family:var(--mono);color:var(--t1);background:var(--s3)}
@@ -130,12 +147,12 @@
 
   .sidebar{display:flex;gap:8px;margin-bottom:12px}
   .sidebtn{flex:1;min-height:44px;border:1px solid var(--bd2);border-radius:var(--r);background:var(--s2);font-family:var(--mono);font-size:14px;color:var(--t2)}
-  .sidebtn.on{background:var(--s3);color:var(--t1);border-color:var(--bd2)}
+  .sidebtn.on{background:var(--dayA-bg);color:var(--accent);border-color:var(--accent);font-weight:600}
 
   .rpe{display:flex;align-items:center;gap:14px;padding:12px 0 4px}
   .rpe .k{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);width:44px}
   .rpe input[type=range]{flex:1;-webkit-appearance:none;height:6px;border-radius:3px;background:var(--s3)}
-  .rpe input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;height:30px;border-radius:50%;background:var(--t1);border:2px solid var(--bg)}
+  .rpe input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;height:30px;border-radius:50%;background:var(--accent);border:2px solid var(--bg);box-shadow:0 2px 8px -2px var(--ring)}
   .rpe .v{font-family:var(--mono);font-size:20px;font-weight:600;width:34px;text-align:right}
 
   .hrow{display:flex;align-items:center;gap:12px;padding:15px 14px;border-bottom:1px solid var(--bd);width:100%;text-align:left;background:none}
@@ -502,7 +519,8 @@ function screenCdnError(){
 /* ------------------------------ Login -------------------------------- */
 function screenLogin(){
   const w = el('<div class="wrap" style="padding-top:56px"></div>');
-  w.appendChild(el('<div class="lbl center" style="margin-bottom:32px">Protokoll</div>'));
+  w.appendChild(el('<div class="brand center" style="margin-bottom:8px">Protokoll</div>'));
+  w.appendChild(el('<div class="lbl center" style="margin-bottom:32px">Trainings-Erfassung</div>'));
   const form = el('<form></form>');
   form.appendChild(el('<label class="field"><span class="k">E-Mail</span><input class="input" type="email" autocomplete="username" inputmode="email" name="email"/></label>'));
   form.appendChild(el('<label class="field"><span class="k">Passwort</span><input class="input" type="password" autocomplete="current-password" name="password"/></label>'));
@@ -548,7 +566,7 @@ function screenStart(){
     const last = lastSessionForDay(d);
     const cnt = catalogForDay(d).length;
     const sub = (last? ("zuletzt "+fmtDate(last.session_date)) : "noch keine Einheit") + "  \u00b7  "+cnt+" \u00dcbungen";
-    const b = el('<button class="daybtn"><span class="tag">'+d+'</span><span class="meta"><span class="n">'+esc(DAY_NAMES[d])+'</span><span class="s">'+esc(sub)+'</span></span></button>');
+    const b = el('<button class="daybtn" data-day="'+d+'"><span class="tag">'+d+'</span><span class="meta"><span class="n">'+esc(DAY_NAMES[d])+'</span><span class="s">'+esc(sub)+'</span></span></button>');
     b.addEventListener("click", ()=> startSession(d));
     c.appendChild(b);
   }
