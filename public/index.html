@@ -106,6 +106,19 @@
   .calday .chealth b{color:var(--t2);font-weight:600;font-size:12px}
   .calday .cchev{color:var(--t3);width:10px;flex:none;text-align:center}
 
+  /* Performance-Panel */
+  .perf{padding:16px}
+  .perfhead{margin-bottom:12px}
+  .perfk{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--t3)}
+  .perfv{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:34px;font-weight:800;line-height:1.1;margin-top:3px}
+  .perfv small{font-size:15px;font-weight:600;color:var(--t2);margin-left:3px}
+  .delta{display:inline-block;font-family:var(--mono);font-size:12px;margin-top:5px}
+  .delta.up{color:var(--grn)}
+  .delta.dn{color:var(--t3)}
+  .sparkbox{margin:4px -4px 0}
+  .spark{display:block;width:100%;height:auto}
+  .sparkcap{display:flex;justify-content:space-between;gap:8px;font-family:var(--mono);font-size:10.5px;color:var(--t3);margin:6px 2px 14px}
+
   .topbar{position:sticky;top:0;z-index:20;background:var(--bg);border-bottom:1px solid var(--bd);
     display:flex;align-items:center;gap:10px;padding:12px 14px;min-height:56px}
   .topbar .ttl{font-family:var(--mono);font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--t2)}
@@ -190,8 +203,8 @@
   .hrow:active{background:var(--s2)}
   .hrow .tag{font-family:var(--mono);font-size:20px;font-weight:600;width:34px;text-align:center;color:var(--t2)}
   .hrow .m{flex:1}
-  .hrow .m .d{font-family:var(--mono);font-size:15px}
-  .hrow .m .s{font-size:12px;color:var(--t2);margin-top:2px;font-family:var(--mono)}
+  .hrow .m .d{display:block;font-family:var(--mono);font-size:15px}
+  .hrow .m .s{display:block;font-size:12px;color:var(--t2);margin-top:2px;font-family:var(--mono)}
   .hrow .r{font-family:var(--mono);font-size:12px;color:var(--t3);text-align:right}
 
   table.tbl{width:100%;border-collapse:collapse;font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:14px}
@@ -279,6 +292,7 @@ const state = {
   dayList: [],       // Uebungen der laufenden Einheit (geordnet)
   ui: {},            // fluechtiger UI-Zustand je Uebung
   histExercise: null,
+  histMetric: "e1rm", // "e1rm" | "top" | "tonnage"
 };
 
 let sb = null;
@@ -1159,7 +1173,7 @@ function screenHistory(){
   });
   sel.addEventListener("change", ()=>{ state.histExercise = sel.value||null; render(); });
   c.appendChild(sel);
-  if(state.histExercise){ c.appendChild(exerciseTable(state.histExercise)); }
+  if(state.histExercise){ c.appendChild(exercisePanel(state.histExercise)); }
 
   // Letzte 20 Einheiten
   c.appendChild(el('<div class="lbl" style="margin:22px 0 4px">Letzte Einheiten</div>'));
@@ -1183,35 +1197,118 @@ function e1rm(weight, reps){
   if(weight==null || reps==null || reps>12) return null;
   return Number(weight) * (1 + Number(reps)/30);
 }
-function exerciseTable(exId){
+function fmt1(n){ return fmtNum(Math.round(Number(n)*10)/10); }
+
+// Kennzahlen je Ausfuehrung (absteigend nach Datum)
+function execMetrics(exId){
   const ex = exById(exId);
-  const rows = sessionsWithExercise(exId, null).slice(0,10);
-  const wrap = el('<div class="card" style="padding:6px 12px 10px"></div>');
-  if(!rows.length){ wrap.appendChild(el('<div class="refline">Keine Ausf\u00fchrungen erfasst.</div>')); return wrap; }
+  const rows = sessionsWithExercise(exId, null);
+  return rows.map(r=>{
+    let top=null, topReps=null, best=null, ton=0, hasWeight=false;
+    r.sets.forEach(s=>{
+      if(s.weight_kg!=null){ hasWeight=true; if(top==null || s.weight_kg>top){ top=s.weight_kg; topReps=s.reps; } if(s.reps!=null) ton += Number(s.weight_kg)*Number(s.reps); }
+      const e = e1rm(s.weight_kg, s.reps); if(e!=null && (best==null || e>best)) best=e;
+    });
+    let prim=null;
+    if(ex){
+      if(ex.unit_type==="distance") prim = Math.max.apply(null, r.sets.map(s=>Number(s.distance_m)||0));
+      else if(ex.unit_type==="time") prim = Math.max.apply(null, r.sets.map(s=>Number(s.duration_s)||0));
+      else if(ex.unit_type==="reps") prim = Math.max.apply(null, r.sets.map(s=>Number(s.reps)||0));
+    }
+    return { date:r.date, top, topReps, e1rm:best, tonnage: hasWeight? ton : null, prim };
+  });
+}
+
+let sparkSeq = 0;
+function sparkline(vals){
+  const W=320, H=76, pad=8;
+  if(!vals.length) return el('<div class="refline">Kein Wert.</div>');
+  const min=Math.min.apply(null,vals), max=Math.max.apply(null,vals), span=(max-min)||1, n=vals.length;
+  const X=i=> n===1? W/2 : pad + i*(W-2*pad)/(n-1);
+  const Y=v=> H-pad - ((v-min)/span)*(H-2*pad);
+  let line="";
+  vals.forEach((v,i)=>{ line += (i? "L":"M") + X(i).toFixed(1)+" "+Y(v).toFixed(1)+" "; });
+  const area = "M"+pad.toFixed(1)+" "+(H-pad).toFixed(1)+" " + vals.map((v,i)=>"L"+X(i).toFixed(1)+" "+Y(v).toFixed(1)).join(" ") + " L"+X(n-1).toFixed(1)+" "+(H-pad).toFixed(1)+" Z";
+  const gid = "spark"+(++sparkSeq);
+  const svg =
+    '<svg class="spark" viewBox="0 0 '+W+' '+H+'" width="100%" height="76" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Verlaufskurve">'
+    +'<defs><linearGradient id="'+gid+'" x1="0" y1="0" x2="0" y2="1">'
+    +'<stop offset="0" stop-color="var(--accent)" stop-opacity="0.30"/>'
+    +'<stop offset="1" stop-color="var(--accent)" stop-opacity="0"/></linearGradient></defs>'
+    +'<path d="'+area+'" fill="url(#'+gid+')"/>'
+    +'<path d="'+line.trim()+'" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>'
+    +'<circle cx="'+X(n-1).toFixed(1)+'" cy="'+Y(vals[n-1]).toFixed(1)+'" r="4" fill="var(--accent)"/>'
+    +'</svg>';
+  return el(svg);
+}
+
+function exercisePanel(exId){
+  const ex = exById(exId);
   const isWR = !ex || ex.unit_type==="weight_reps";
+  const execs = execMetrics(exId);
+  const wrap = el('<div class="card perf"></div>');
+  if(!execs.length){ wrap.appendChild(el('<div class="refline" style="padding:14px">Keine Ausf\u00fchrungen erfasst.</div>')); return wrap; }
+
+  const metric = isWR ? state.histMetric : "prim";
+  const head = el('<div class="perfhead"></div>');
+  wrap.appendChild(head);
+
+  if(isWR){
+    const tabs = el('<div class="sidebar" style="margin:0 0 12px"></div>');
+    [["e1rm","1RM"],["top","Top-Gewicht"],["tonnage","Tonnage"]].forEach(([k,lab])=>{
+      const b = el('<button class="sidebtn'+(metric===k?" on":"")+'" style="font-size:12px">'+lab+'</button>');
+      b.addEventListener("click", ()=>{ state.histMetric=k; render(); });
+      tabs.appendChild(b);
+    });
+    wrap.appendChild(tabs);
+  }
+
+  const asc = execs.slice().reverse();
+  const valOf = (e)=> metric==="e1rm"? e.e1rm : metric==="top"? e.top : metric==="tonnage"? e.tonnage : e.prim;
+  const series = asc.map(e=>({ date:e.date, v: valOf(e) })).filter(p=>p.v!=null);
+  const vals = series.map(p=>p.v);
+  const unit = (metric==="tonnage"||metric==="top"||(isWR&&metric==="e1rm")) ? " kg"
+             : (ex&&ex.unit_type==="distance") ? " m" : (ex&&ex.unit_type==="time") ? " s" : "";
+  const labels = { e1rm:"Gesch\u00e4tztes 1RM", top:"Top-Gewicht", tonnage:"Tonnage", prim:"Bestwert" };
+
+  let cur="\u2013", deltaHtml="";
+  if(vals.length){
+    const c0 = vals[vals.length-1];
+    cur = metric==="e1rm" ? c0.toFixed(1) : fmt1(c0);
+    if(vals.length>1){
+      const d = c0 - vals[vals.length-2];
+      const up = d>=0;
+      deltaHtml = '<span class="delta '+(up?"up":"dn")+'">'+(up?"+":"\u2212")+(metric==="e1rm"?Math.abs(d).toFixed(1):fmt1(Math.abs(d)))+unit+' vs. zuletzt</span>';
+    }
+  }
+  head.innerHTML = '<div class="perfk">'+labels[metric]+'</div><div class="perfv num">'+cur+'<small>'+unit+'</small></div>'+deltaHtml;
+
+  const box = el('<div class="sparkbox"></div>');
+  box.appendChild(sparkline(vals));
+  wrap.appendChild(box);
+  if(series.length){
+    const mn=Math.min.apply(null,vals), mx=Math.max.apply(null,vals);
+    wrap.appendChild(el('<div class="sparkcap num"><span>'+fmtDate(series[0].date)+'</span><span>min '+fmt1(mn)+' \u00b7 max '+fmt1(mx)+'</span><span>'+fmtDate(series[series.length-1].date)+'</span></div>'));
+  }
+
+  // Tabelle: letzte 10 Ausfuehrungen
+  const recent = execs.slice(0,10);
   const t = el('<table class="tbl"></table>');
   if(isWR){
-    t.appendChild(el('<thead><tr><th>Datum</th><th>Top kg</th><th>Wdh.</th><th>gesch. 1RM</th></tr></thead>'));
+    t.appendChild(el('<thead><tr><th>Datum</th><th>Top kg</th><th>Wdh.</th><th>1RM</th></tr></thead>'));
+    const tb = el('<tbody></tbody>');
+    recent.forEach(e=>{
+      tb.appendChild(el('<tr><td>'+fmtDate(e.date)+'</td><td>'+(e.top!=null?fmtNum(e.top):"\u2013")+'</td><td>'+(e.topReps!=null?fmtNum(e.topReps):"\u2013")+'</td><td>'+(e.e1rm!=null?e.e1rm.toFixed(1):"\u2013")+'</td></tr>'));
+    });
+    t.appendChild(tb);
   } else {
-    t.appendChild(el('<thead><tr><th>Datum</th><th>Wert</th></tr></thead>'));
+    t.appendChild(el('<thead><tr><th>Datum</th><th>Bestwert</th></tr></thead>'));
+    const tb = el('<tbody></tbody>');
+    recent.forEach(e=>{ tb.appendChild(el('<tr><td>'+fmtDate(e.date)+'</td><td>'+(e.prim!=null?fmt1(e.prim)+unit:"\u2013")+'</td></tr>')); });
+    t.appendChild(tb);
   }
-  const tb = el('<tbody></tbody>');
-  rows.forEach(r=>{
-    if(isWR){
-      let top=null, topReps=null, best=null;
-      r.sets.forEach(s=>{
-        if(s.weight_kg!=null){ if(top==null || s.weight_kg>top){ top=s.weight_kg; topReps=s.reps; } }
-        const e = e1rm(s.weight_kg, s.reps); if(e!=null && (best==null || e>best)) best=e;
-      });
-      tb.appendChild(el('<tr><td>'+fmtDate(r.date)+'</td><td>'+(top!=null?fmtNum(top):"\u2013")+'</td><td>'+(topReps!=null?fmtNum(topReps):"\u2013")+'</td><td>'+(best!=null?best.toFixed(1):"\u2013")+'</td></tr>'));
-    } else {
-      const s0 = r.sets[0]||{};
-      tb.appendChild(el('<tr><td>'+fmtDate(r.date)+'</td><td>'+esc(setValueStr(ex, s0))+'</td></tr>'));
-    }
-  });
-  t.appendChild(tb);
   wrap.appendChild(t);
-  if(isWR) wrap.appendChild(el('<div class="refline" style="padding-top:10px">1RM ist ein Sch\u00e4tzwert (Epley), keine Messung.</div>'));
+  if(isWR && metric==="e1rm") wrap.appendChild(el('<div class="refline" style="padding-top:10px">1RM ist ein Sch\u00e4tzwert (Epley), keine Messung.</div>'));
   return wrap;
 }
 
